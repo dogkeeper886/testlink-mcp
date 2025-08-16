@@ -20,13 +20,27 @@ if (!TESTLINK_API_KEY) {
 }
 
 // Input validation helpers
-function validateTestCaseId(id: string): void {
+function parseTestCaseId(id: string): string {
   if (!id || typeof id !== 'string') {
     throw new Error('Test case ID must be a non-empty string');
   }
-  if (!/^\d+$/.test(id)) {
-    throw new Error('Test case ID must contain only digits');
+  
+  // Handle external ID format (ACX-50140) - extract numeric part
+  const externalIdMatch = id.match(/^[A-Z]+-(\d+)$/);
+  if (externalIdMatch) {
+    return externalIdMatch[1];
   }
+  
+  // Handle pure numeric ID
+  if (/^\d+$/.test(id)) {
+    return id;
+  }
+  
+  throw new Error('Test case ID must be either numeric (50140) or external format (ACX-50140)');
+}
+
+function validateTestCaseId(id: string): void {
+  parseTestCaseId(id); // This will throw if invalid
 }
 
 function validateProjectId(id: string): void {
@@ -99,8 +113,18 @@ class TestLinkAPI {
 
   async getTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
+    
+    // If it looks like an external ID (ACX-50140), use testcaseexternalid
+    if (/^[A-Z]+-\d+$/.test(testCaseId)) {
+      return this.handleAPICall(() => this.client.getTestCase({ 
+        testcaseexternalid: testCaseId
+      }));
+    }
+    
+    // Otherwise use the numeric ID
+    const numericId = parseTestCaseId(testCaseId);
     return this.handleAPICall(() => this.client.getTestCase({ 
-      testcaseid: testCaseId
+      testcaseid: numericId
     }));
   }
 
@@ -270,7 +294,7 @@ const tools: Tool[] = [
       properties: {
         test_case_id: {
           type: 'string',
-          description: 'The TestLink test case ID'
+          description: 'The TestLink test case ID (numeric like "50140" or external format like "ACX-50140")'
         }
       },
       required: ['test_case_id']
@@ -382,7 +406,7 @@ const tools: Tool[] = [
   },
   {
     name: 'search_test_cases',
-    description: 'Search for test cases by name in a project',
+    description: 'Search for test cases by exact name match in a project',
     inputSchema: {
       type: 'object',
       properties: {
@@ -392,7 +416,7 @@ const tools: Tool[] = [
         },
         search_text: {
           type: 'string',
-          description: 'Text to search for in test case names'
+          description: 'Exact test case name to search for (case-sensitive, exact match only)'
         }
       },
       required: ['project_id', 'search_text']
