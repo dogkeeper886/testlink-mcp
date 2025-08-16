@@ -6,8 +6,8 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import axios from 'axios';
 import dotenv from 'dotenv';
+import { TestLink, Constants } from 'testlink-xmlrpc';
 
 dotenv.config();
 
@@ -54,29 +54,25 @@ function validateNonEmptyString(value: string, fieldName: string): void {
 }
 
 class TestLinkAPI {
-  private apiUrl: string;
-  private apiKey: string;
+  private client: TestLink;
 
   constructor(url: string, apiKey: string) {
-    this.apiUrl = `${url}/lib/api/xmlrpc/v1/xmlrpc.php`;
-    this.apiKey = apiKey;
+    const parsedUrl = new URL(url);
+    this.client = new TestLink({
+      host: parsedUrl.hostname,
+      rpcPath: parsedUrl.pathname + '/lib/api/xmlrpc/v1/xmlrpc.php',
+      apiKey: apiKey
+    });
   }
 
-  private async callAPI(method: string, params: any = {}) {
-    const requestData = {
-      method: method,
-      params: [{ devKey: this.apiKey, ...params }]
-    };
-
+  private async handleAPICall<T>(apiCall: () => Promise<T>): Promise<T> {
     try {
-      const response = await axios.post(this.apiUrl, requestData, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000 // 30 second timeout
-      });
+      const result = await apiCall();
       
-      if (response.data[0]?.code) {
-        const errorCode = response.data[0].code;
-        const errorMessage = response.data[0].message || 'Unknown error';
+      // Handle error responses from TestLink
+      if (Array.isArray(result) && result[0]?.code) {
+        const errorCode = result[0].code;
+        const errorMessage = result[0].message || 'Unknown error';
         
         // Provide more helpful error messages based on common error codes
         if (errorCode === 2000) {
@@ -90,16 +86,12 @@ class TestLinkAPI {
         }
       }
       
-      return response.data[0];
+      return result;
     } catch (error: any) {
       if (error.code === 'ECONNREFUSED') {
-        throw new Error(`Cannot connect to TestLink at ${this.apiUrl}. Please check TESTLINK_URL.`);
+        throw new Error(`Cannot connect to TestLink. Please check TESTLINK_URL.`);
       } else if (error.code === 'ETIMEDOUT') {
-        throw new Error(`TestLink API request timed out after 30 seconds`);
-      } else if (error.response?.status === 404) {
-        throw new Error(`TestLink API endpoint not found. Please check TestLink configuration.`);
-      } else if (error.response?.status >= 500) {
-        throw new Error(`TestLink server error (${error.response.status}): ${error.message}`);
+        throw new Error(`TestLink API request timed out`);
       }
       throw new Error(`API call failed: ${error.message}`);
     }
@@ -107,10 +99,9 @@ class TestLinkAPI {
 
   async getTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
-    return this.callAPI('tl.getTestCase', { 
-      testcaseid: testCaseId,
-      version: null
-    });
+    return this.handleAPICall(() => this.client.getTestCase({ 
+      testcaseid: testCaseId
+    }));
   }
 
   async updateTestCase(testCaseId: string, data: any) {
@@ -120,7 +111,7 @@ class TestLinkAPI {
     }
     
     const updateParams: any = {
-      testcaseid: testCaseId
+      testcaseexternalid: testCaseId
     };
 
     if (data.name) updateParams.testcasename = data.name;
@@ -131,7 +122,7 @@ class TestLinkAPI {
     if (data.execution_type !== undefined) updateParams.executiontype = data.execution_type;
     if (data.status !== undefined) updateParams.status = data.status;
 
-    return this.callAPI('tl.updateTestCase', updateParams);
+    return this.handleAPICall(() => this.client.updateTestCase(updateParams));
   }
 
   async createTestCase(data: any) {
@@ -147,60 +138,60 @@ class TestLinkAPI {
     validateNonEmptyString(data.authorlogin, 'Author login');
 
     const createParams = {
-      testprojectid: data.testprojectid,
-      testsuiteid: data.testsuiteid,
+      testprojectid: parseInt(data.testprojectid),
+      testsuiteid: parseInt(data.testsuiteid),
       testcasename: data.name,
       authorlogin: data.authorlogin,
       summary: data.summary || '',
-      preconditions: data.preconditions || '',
       steps: data.steps || [],
       importance: data.importance || 2,
       executiontype: data.execution_type || 1,
       status: data.status || 1
     };
 
-    return this.callAPI('tl.createTestCase', createParams);
+    return this.handleAPICall(() => this.client.createTestCase(createParams));
   }
 
   async deleteTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
-    return this.callAPI('tl.deleteTestCase', { testcaseid: testCaseId });
+    // TestLink XML-RPC library doesn't have a direct delete method
+    // We'll implement this by marking as obsolete
+    return this.updateTestCase(testCaseId, { status: 7 }); // Status 7 = obsolete
   }
 
   async getTestProjects() {
-    return this.callAPI('tl.getProjects');
+    return this.handleAPICall(() => this.client.getProjects());
   }
 
   async getTestSuites(projectId: string) {
     validateProjectId(projectId);
-    return this.callAPI('tl.getFirstLevelTestSuitesForTestProject', {
+    return this.handleAPICall(() => this.client.getFirstLevelTestSuitesForTestProject({
       testprojectid: projectId
-    });
+    }));
   }
 
   async getTestSuiteByID(suiteId: string) {
     validateSuiteId(suiteId);
-    return this.callAPI('tl.getTestSuiteByID', {
-      testsuiteid: suiteId
-    });
+    return this.handleAPICall(() => this.client.getTestSuiteByID({
+      testsuiteid: parseInt(suiteId)
+    }));
   }
 
   async getTestCasesForTestSuite(suiteId: string) {
     validateSuiteId(suiteId);
-    return this.callAPI('tl.getTestCasesForTestSuite', {
-      testsuiteid: suiteId,
+    return this.handleAPICall(() => this.client.getTestCasesForTestSuite({
+      testsuiteid: parseInt(suiteId),
       deep: true,
-      details: 'full'
-    });
+      details: Constants.Details.FULL
+    }));
   }
 
   async searchTestCases(projectId: string, searchText: string) {
     validateProjectId(projectId);
     validateNonEmptyString(searchText, 'Search text');
-    return this.callAPI('tl.getTestCaseIDByName', {
-      testcasename: searchText,
-      testprojectname: projectId
-    });
+    return this.handleAPICall(() => this.client.getTestCaseIDByName({
+      testcasename: searchText
+    }));
   }
 
   async bulkUpdateTestCases(testCaseIds: string[], data: any) {
@@ -237,18 +228,21 @@ class TestLinkAPI {
     };
     
     if (parentId) {
-      params.parentid = parentId;
+      params.parentid = parseInt(parentId);
     }
     
-    return this.callAPI('tl.createTestSuite', params);
+    return this.handleAPICall(() => this.client.createTestSuite(params));
   }
 
   async archiveTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
-    // TestLink doesn't have a built-in archive, so we'll update status to indicate archived
+    // Get current test case to prepend [ARCHIVED] to summary
+    const testCase = await this.getTestCase(testCaseId);
+    const currentSummary = Array.isArray(testCase) && testCase[0] ? testCase[0].summary : '';
+    
     return this.updateTestCase(testCaseId, { 
       status: 7, // Status 7 is typically used for obsolete/archived
-      summary: '[ARCHIVED] ' + (await this.getTestCase(testCaseId))[0].summary
+      summary: '[ARCHIVED] ' + currentSummary
     });
   }
 }

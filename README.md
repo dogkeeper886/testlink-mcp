@@ -13,10 +13,11 @@ A Model Context Protocol (MCP) server for TestLink test case management, designe
 - Comprehensive error handling and input validation
 - Multi-stage Docker containerization for optimal performance
 - Modern MCP SDK integration with STDIO transport
+- Native XML-RPC client for reliable TestLink API communication
 
 ## Prerequisites
 
-- TestLink instance with API access enabled
+- TestLink instance with XML-RPC API access enabled
 - TestLink API key (generate from TestLink user profile)
 - Docker (for containerized deployment)
 - Node.js 20+ (for local development)
@@ -142,9 +143,9 @@ docker push your-username/testlink-mcp-server:latest
 ```
 testlink-mcp-server/
 ├── src/
-│   └── index.ts       # Main MCP server implementation
+│   └── index.ts       # Main MCP server implementation with XML-RPC client
 ├── Dockerfile         # Docker configuration
-├── package.json       # Node dependencies
+├── package.json       # Node dependencies (includes testlink-xmlrpc)
 ├── tsconfig.json      # TypeScript configuration
 └── .env.example       # Environment variables template
 ```
@@ -166,12 +167,19 @@ npm start
 ### Connection Issues
 - Verify TestLink URL is accessible from Docker container
 - Check API key is valid and has permissions
-- Ensure TestLink XML-RPC API is enabled
+- Ensure TestLink XML-RPC API is enabled in TestLink configuration
+- Verify the URL format includes the full path (e.g., `http://server/testlink`, not just `http://server`)
 
 ### API Errors
-- Check TestLink version compatibility
+- Check TestLink version compatibility (tested with TestLink 1.9.20+)
 - Verify required fields for create/update operations
 - Review TestLink server logs for detailed errors
+- Ensure TestLink user has sufficient permissions for the requested operations
+
+### Technical Notes
+- This server uses the `testlink-xmlrpc` library for native XML-RPC communication
+- TestLink's API requires XML-RPC protocol, not REST/JSON
+- All API calls are properly validated and error-handled
 
 ## License
 

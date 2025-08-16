@@ -12,7 +12,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.7.2",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "testlink-xmlrpc": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
