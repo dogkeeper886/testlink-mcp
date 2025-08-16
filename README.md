@@ -15,44 +15,65 @@ A Model Context Protocol (MCP) server for TestLink test case management, designe
 - Modern MCP SDK integration with STDIO transport
 - Native XML-RPC client for reliable TestLink API communication
 
-## Prerequisites
+## Usage Examples with Claude Code
 
-- TestLink instance with XML-RPC API access enabled
-- TestLink API key (generate from TestLink user profile)
-- Docker (for containerized deployment)
-- Node.js 20+ (for local development)
+Once installed, you can use natural language with Claude Code:
+
+```
+"Read test case 123 and improve the test steps"
+"Create a new test case for login functionality"
+"Update test case 456 with more detailed expected results"
+"List all test cases in suite 789"
+"Search for test cases containing 'login' in project 1"
+"Update test cases 123, 456, 789 to set importance level to 3"
+"Create a new test suite called 'Authentication Tests' in project 1"
+"Archive test case 999 as it's no longer relevant"
+```
 
 ## Quick Start
 
 ### Option 1: Using Docker (Recommended)
 
-1. Clone this repository:
-```bash
-cd testlink-mcp-server
-```
-
-2. Build the Docker image:
-```bash
-docker build -t your-dockerhub-username/testlink-mcp-server:latest .
-```
-
-3. Add to Claude Code:
 ```bash
 claude mcp add testlink -- docker run --rm -i \
   --name testlink-mcp \
   -e TESTLINK_URL=http://192.168.x.x/testlink \
   -e TESTLINK_API_KEY=your_api_key_here \
-  your-dockerhub-username/testlink-mcp-server:latest
+  dogkeeper886/testlink-mcp:latest
 ```
 
-### Option 2: Local Development
+*Replace with your TestLink URL and API key*
 
-1. Install dependencies:
+### Option 2: Using Node (Run from Source)
+
+1. Clone and build:
 ```bash
+git clone <repository-url>
+cd testlink-mcp-server
+npm install
+npm run build
+```
+
+2. Add to Claude Code:
+```bash
+claude mcp add testlink \
+  --env TESTLINK_URL=http://192.168.x.x/testlink \
+  --env TESTLINK_API_KEY=your_api_key_here \
+  -- node dist/index.js
+```
+
+### Option 3: Local Development
+
+For development and testing:
+
+1. Clone and install:
+```bash
+git clone <repository-url>
+cd testlink-mcp-server
 npm install
 ```
 
-2. Create `.env` file:
+2. Configure environment:
 ```bash
 cp .env.example .env
 # Edit .env with your TestLink credentials
@@ -63,24 +84,19 @@ cp .env.example .env
 npm run dev
 ```
 
-## Environment Variables
-
-- `TESTLINK_URL`: Your TestLink instance URL (e.g., `http://192.168.4.114/testlink`)
-- `TESTLINK_API_KEY`: Your TestLink API key
-
 ## Available MCP Tools
 
 ### Test Case Operations (RUCD Priority Order)
 
 #### Read Operations
 - **read_test_case**: Fetch complete test case data
-  - Parameters: `test_case_id`
+  - Parameters: `test_case_id` (supports both numeric "50140" and external "ZD-15540" formats)
 - **list_projects**: Get all test projects
 - **list_test_suites**: Get test suites for a project
   - Parameters: `project_id`
 - **list_test_cases_in_suite**: Get all test cases in a suite
   - Parameters: `suite_id`
-- **search_test_cases**: Search for test cases by name in a project
+- **search_test_cases**: Search for test cases by exact name match in a project
   - Parameters: `project_id`, `search_text`
 
 #### Update Operations
@@ -101,22 +117,20 @@ npm run dev
 - **archive_test_case**: Archive a test case (marks as obsolete with [ARCHIVED] prefix)
   - Parameters: `test_case_id`
 
-## Usage Examples with Claude Code
+## Setup & Configuration
 
-Once installed, you can use natural language with Claude Code:
+### Prerequisites
 
-```
-"Read test case 123 and improve the test steps"
-"Create a new test case for login functionality"
-"Update test case 456 with more detailed expected results"
-"List all test cases in suite 789"
-"Search for test cases containing 'login' in project 1"
-"Update test cases 123, 456, 789 to set importance level to 3"
-"Create a new test suite called 'Authentication Tests' in project 1"
-"Archive test case 999 as it's no longer relevant"
-```
+- TestLink instance with XML-RPC API access enabled
+- TestLink API key (generate from TestLink user profile)
+- Docker (for containerized deployment) or Node.js 20+ (for local development)
 
-## TestLink API Configuration
+### Environment Variables
+
+- `TESTLINK_URL`: Your TestLink instance URL (e.g., `http://192.168.4.114/testlink`)
+- `TESTLINK_API_KEY`: Your TestLink API key
+
+### TestLink API Configuration
 
 1. Enable XML-RPC API in TestLink configuration
 2. Generate API key from your TestLink user profile:
@@ -125,19 +139,40 @@ Once installed, you can use natural language with Claude Code:
    - Click "Generate API Key"
 3. Ensure your TestLink user has appropriate permissions
 
-## Building and Publishing
+## Troubleshooting
 
-### Build Docker Image
-```bash
-docker build -t your-username/testlink-mcp-server:latest .
-```
+### Connection Issues
+- Verify TestLink URL is accessible from Docker container
+- Check API key is valid and has permissions
+- Ensure TestLink XML-RPC API is enabled in TestLink configuration
+- Verify the URL format includes the full path (e.g., `http://server/testlink`, not just `http://server`)
 
-### Push to Docker Hub
-```bash
-docker push your-username/testlink-mcp-server:latest
-```
+### API Errors
+- Check TestLink version compatibility (tested with TestLink 1.9.20+)
+- Verify required fields for create/update operations
+- Review TestLink server logs for detailed errors
+- Ensure TestLink user has sufficient permissions for the requested operations
+
+### Technical Notes
+- This server uses the `testlink-xmlrpc` library for native XML-RPC communication
+- TestLink's API requires XML-RPC protocol, not REST/JSON
+- All API calls are properly validated and error-handled
+
+---
 
 ## Development
+
+### Building and Publishing
+
+#### Build Docker Image
+```bash
+docker build -t dogkeeper886/testlink-mcp:latest .
+```
+
+#### Push to Docker Hub
+```bash
+docker push dogkeeper886/testlink-mcp:latest
+```
 
 ### Project Structure
 ```
@@ -161,25 +196,6 @@ npm run build
 # Run the server
 npm start
 ```
-
-## Troubleshooting
-
-### Connection Issues
-- Verify TestLink URL is accessible from Docker container
-- Check API key is valid and has permissions
-- Ensure TestLink XML-RPC API is enabled in TestLink configuration
-- Verify the URL format includes the full path (e.g., `http://server/testlink`, not just `http://server`)
-
-### API Errors
-- Check TestLink version compatibility (tested with TestLink 1.9.20+)
-- Verify required fields for create/update operations
-- Review TestLink server logs for detailed errors
-- Ensure TestLink user has sufficient permissions for the requested operations
-
-### Technical Notes
-- This server uses the `testlink-xmlrpc` library for native XML-RPC communication
-- TestLink's API requires XML-RPC protocol, not REST/JSON
-- All API calls are properly validated and error-handled
 
 ## License
 
