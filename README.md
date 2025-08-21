@@ -34,6 +34,7 @@ Once installed, you can use natural language with Claude Code:
 
 ### Option 1: Using Docker (Recommended)
 
+#### For Claude Code
 ```bash
 claude mcp add testlink -- docker run --rm -i \
   --name testlink-mcp \
@@ -42,7 +43,30 @@ claude mcp add testlink -- docker run --rm -i \
   dogkeeper886/testlink-mcp:latest
 ```
 
-*Replace with your TestLink URL and API key*
+#### For Cursor IDE
+Add the following configuration to your MCP settings:
+
+```json
+{
+  "testlink": {
+    "command": "docker",
+    "args": [
+      "run",
+      "--rm",
+      "-i",
+      "--name",
+      "testlink-mcp",
+      "-e",
+      "TESTLINK_URL=http://your-testlink-server.com/testlink",
+      "-e",
+      "TESTLINK_API_KEY=your_api_key_here",
+      "dogkeeper886/testlink-mcp:latest"
+    ]
+  }
+}
+```
+
+*Replace `http://your-testlink-server.com/testlink` with your TestLink URL and `your_api_key_here` with your API key*
 
 ### Option 2: Using Node (Run from Source)
 
