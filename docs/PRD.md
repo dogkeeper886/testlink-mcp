@@ -88,39 +88,20 @@ Following the RUCD priority order:
 - Multi-platform Docker images (linux/amd64, linux/arm64)
 - Docker Compose for local development
 
-### Enhanced Features (P1 - Should Have)
+### Potential Future Enhancements
 
-#### 1. Advanced Search & Filter
-- Search by multiple criteria
-- Regular expression support
-- Date range filters
-- Custom field queries
+The following features represent potential areas for future development based on user needs and feedback:
 
-#### 2. Test Execution Integration
-- Execute test cases
-- Update execution results
-- Generate execution reports
-- Track test history
+#### Advanced Capabilities
+- Enhanced search with multiple criteria and filters
+- Test execution tracking and reporting
+- Import/export functionality for test migration
+- AI-powered test case suggestions and improvements
 
-#### 3. Batch Operations
-- Import/export test cases
-- Bulk operations with transactions
-- Template-based creation
-- Cloning and duplication
-
-### Future Features (P2 - Nice to Have)
-
-#### 1. AI Capabilities
-- Auto-generate test cases from user stories
-- Suggest test improvements
-- Detect duplicate or similar tests
-- Risk-based test prioritization
-
-#### 2. Integration Features
-- Jira integration
-- Slack notifications
-- Webhook support
-- Custom field mapping
+#### Integration Opportunities
+- Third-party tool integrations (issue trackers, chat platforms)
+- Webhook support for event notifications
+- Custom field mapping for enterprise systems
 
 ## Technical Requirements
 
@@ -160,60 +141,58 @@ Following the RUCD priority order:
 - Tool Registration: Dynamic tool discovery
 - Error Handling: MCP-compliant error responses
 
-### Performance Requirements
-- Response Time: <2 seconds for single operations
-- Batch Operations: <10 seconds for 100 items
-- Concurrent Requests: Support 10 simultaneous connections
-- Memory Usage: <256MB under normal load
-- Container Size: <100MB compressed image
+### Performance Characteristics
+- Response Time: Typically <2 seconds for single operations
+- Batch Operations: Scales linearly with number of items
+- Memory Usage: Optimized through Alpine Linux base image
+- Container Size: Minimized through multi-stage Docker builds
 
-### Security Requirements
+### Security Implementation
 - API Key storage: Environment variables only
 - No credential logging
 - HTTPS support for TestLink connections
-- Input validation and sanitization
-- Rate limiting for API calls
+- Comprehensive input validation and sanitization
+- Non-root Docker container execution
 
-## Non-Functional Requirements
+## Design Principles
 
 ### Reliability
-- 99.9% uptime target
-- Graceful error handling
-- Automatic retry with exponential backoff
-- Transaction support for batch operations
+- Robust error handling with detailed error messages
+- Input validation for all operations
+- Graceful handling of connection failures
 
 ### Scalability
-- Horizontal scaling via container orchestration
-- Stateless design
-- Connection pooling for API calls
-- Caching for frequently accessed data
+- Stateless design for easy horizontal scaling
+- Docker containerization for deployment flexibility
+- Lightweight Alpine Linux base for resource efficiency
 
 ### Usability
-- Natural language command support
-- Clear error messages
-- Comprehensive logging
-- Interactive help and documentation
+- Natural language command support through Claude
+- Clear, actionable error messages
+- Simple environment variable configuration
+- Comprehensive documentation
 
 ### Maintainability
-- Modular code structure
-- Comprehensive test coverage (>80%)
-- Docker-based deployment
-- Automated build and release pipeline
+- Clean, modular TypeScript code structure
+- Docker-based deployment for consistency
+- Published to Docker Hub for easy distribution
 
 ## Implementation Phases
 
-### Phase 1: Core RUCD Operations (Current)
+### Phase 1: Core RUCD Operations (Completed ✅)
 - [x] Basic Read operations
 - [x] Update functionality
 - [x] Create operations
 - [x] Delete capability
 - [x] Docker containerization
-- [ ] Error handling improvements
-- [ ] Input validation
+- [x] Error handling improvements
+- [x] Input validation
+- [x] External test case ID support
+- [x] Native XML-RPC client integration
 
-### Phase 2: Enhanced Features (Next)
+### Phase 2: Enhanced Features (Future)
 - [ ] Advanced search capabilities
-- [ ] Batch operations
+- [ ] Import/Export operations
 - [ ] Test execution integration
 - [ ] Performance optimizations
 - [ ] Caching layer
@@ -224,11 +203,12 @@ Following the RUCD priority order:
 - [ ] Duplicate detection
 - [ ] Test prioritization
 
-### Phase 4: Enterprise Features
+### Phase 4: Enterprise Features (Future)
 - [ ] Multi-tenancy support
 - [ ] Role-based access control
 - [ ] Audit logging
 - [ ] Compliance features
+- [ ] External integrations (Jira, Slack)
 
 ## Constraints and Assumptions
 
@@ -292,8 +272,6 @@ See `src/index.ts` for complete tool schemas and implementations
 ### C. Environment Variables
 - TESTLINK_URL: TestLink instance URL
 - TESTLINK_API_KEY: Authentication key
-- LOG_LEVEL: Logging verbosity (optional)
-- CACHE_TTL: Cache timeout in seconds (optional)
 
 ### D. Error Codes
 - 1xxx: TestLink API errors
