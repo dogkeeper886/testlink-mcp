@@ -15,7 +15,6 @@ const TESTLINK_URL = process.env.TESTLINK_URL || 'http://localhost/testlink';
 const TESTLINK_API_KEY = process.env.TESTLINK_API_KEY || '';
 
 if (!TESTLINK_API_KEY) {
-  console.error('Error: TESTLINK_API_KEY environment variable is required');
   process.exit(1);
 }
 
@@ -582,10 +581,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('TestLink MCP Server started successfully');
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
+main().catch(() => {
   process.exit(1);
 });
