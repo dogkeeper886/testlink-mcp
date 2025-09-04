@@ -44,24 +44,26 @@ claude mcp add testlink -- docker run --rm -i \
 ```
 
 #### For Cursor IDE
-Add the following configuration to your MCP settings:
+Add the following configuration to your Cursor MCP settings:
 
 ```json
 {
-  "testlink": {
-    "command": "docker",
-    "args": [
-      "run",
-      "--rm",
-      "-i",
-      "--name",
-      "testlink-mcp",
-      "-e",
-      "TESTLINK_URL=http://your-testlink-server.com/testlink",
-      "-e",
-      "TESTLINK_API_KEY=your_api_key_here",
-      "dogkeeper886/testlink-mcp:latest"
-    ]
+  "mcpServers": {
+    "testlink": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--name",
+        "testlink-mcp",
+        "-e",
+        "TESTLINK_URL=http://your-testlink-server.com/testlink",
+        "-e",
+        "TESTLINK_API_KEY=your_api_key_here",
+        "dogkeeper886/testlink-mcp:latest"
+      ]
+    }
   }
 }
 ```
