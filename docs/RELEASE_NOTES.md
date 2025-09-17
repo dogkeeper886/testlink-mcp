@@ -65,7 +65,6 @@ The server implements all fundamental test management operations following the R
 
 ```bash
 claude mcp add testlink -- docker run --rm -i \
-  --name testlink-mcp \
   -e TESTLINK_URL=http://your-testlink-server/testlink \
   -e TESTLINK_API_KEY=your_api_key_here \
   dogkeeper886/testlink-mcp:latest

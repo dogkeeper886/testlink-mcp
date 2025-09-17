@@ -5,7 +5,7 @@
 ### Problem
 The TestLink MCP server was failing to connect when tested with `claude mcp list`, showing:
 ```
-testlink: docker run --rm -i --name testlink-mcp -e TESTLINK_URL=http://qa-tms.commscope.com/testlink -e TESTLINK_API_KEY=565c591e63466d98a05ff6eae7f07d1d dogkeeper886/testlink-mcp:latest - ✗ Failed to connect
+testlink: docker run --rm -i -e TESTLINK_URL=http://qa-tms.commscope.com/testlink -e TESTLINK_API_KEY=565c591e63466d98a05ff6eae7f07d1d dogkeeper886/testlink-mcp:latest - ✗ Failed to connect
 ```
 
 ### Root Cause

@@ -37,7 +37,6 @@ Once installed, you can use natural language with Claude Code:
 #### For Claude Code
 ```bash
 claude mcp add testlink -- docker run --rm -i \
-  --name testlink-mcp \
   -e TESTLINK_URL=http://192.168.x.x/testlink \
   -e TESTLINK_API_KEY=your_api_key_here \
   dogkeeper886/testlink-mcp:latest
@@ -55,8 +54,6 @@ Add the following configuration to your Cursor MCP settings:
         "run",
         "--rm",
         "-i",
-        "--name",
-        "testlink-mcp",
         "-e",
         "TESTLINK_URL=http://your-testlink-server.com/testlink",
         "-e",
