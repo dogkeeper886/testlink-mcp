@@ -186,6 +186,44 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.getProjects());
   }
 
+  async createProject(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Project data must be an object');
+    }
+    if (!data.name || !data.prefix) {
+      throw new Error('Missing required fields: name, prefix');
+    }
+    validateNonEmptyString(data.name, 'Project name');
+    validateNonEmptyString(data.prefix, 'Project prefix');
+
+    const createParams = {
+      testprojectname: data.name,
+      testcaseprefix: data.prefix,
+      notes: data.notes || '',
+      opt: data.options || { requirementsEnabled: 1, testPriorityEnabled: 1, automationEnabled: 1, inventoryEnabled: 1 }
+    };
+
+    return this.handleAPICall(() => this.client.createTestProject(createParams));
+  }
+
+  async updateProject(projectId: string, data: any) {
+    validateProjectId(projectId);
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    // TestLink doesn't have a direct update project method
+    // We'll need to use custom fields or other approaches
+    throw new Error('Project update not supported by TestLink API');
+  }
+
+  async deleteProject(projectId: string) {
+    validateProjectId(projectId);
+    return this.handleAPICall(() => this.client.deleteTestProject({
+      prefix: projectId
+    }));
+  }
+
   async getTestSuites(projectId: string) {
     validateProjectId(projectId);
     return this.handleAPICall(() => this.client.getFirstLevelTestSuitesForTestProject({
@@ -257,6 +295,29 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createTestSuite(params));
   }
 
+  async updateTestSuite(suiteId: string, data: any) {
+    validateSuiteId(suiteId);
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    const updateParams: any = {
+      testsuiteid: parseInt(suiteId)
+    };
+
+    if (data.name) updateParams.testsuitename = data.name;
+    if (data.details) updateParams.details = data.details;
+
+    return this.handleAPICall(() => this.client.updateTestSuite(updateParams));
+  }
+
+  async deleteTestSuite(suiteId: string) {
+    validateSuiteId(suiteId);
+    // TestLink doesn't have a direct delete test suite method
+    // We'll need to use a different approach or mark as obsolete
+    throw new Error('Test suite deletion not supported by TestLink API');
+  }
+
   async archiveTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
     // Get current test case to prepend [ARCHIVED] to summary
@@ -267,6 +328,190 @@ class TestLinkAPI {
       status: 7, // Status 7 is typically used for obsolete/archived
       summary: '[ARCHIVED] ' + currentSummary
     });
+  }
+
+  async getTestPlans(projectId: string) {
+    validateProjectId(projectId);
+    return this.handleAPICall(() => this.client.getProjectTestPlans({
+      testprojectid: parseInt(projectId)
+    }));
+  }
+
+  async createTestPlan(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Test plan data must be an object');
+    }
+    if (!data.project_id || !data.name) {
+      throw new Error('Missing required fields: project_id, name');
+    }
+    validateProjectId(data.project_id);
+    validateNonEmptyString(data.name, 'Test plan name');
+
+    const createParams = {
+      testprojectid: parseInt(data.project_id),
+      testplanname: data.name,
+      notes: data.notes || '',
+      active: data.active !== undefined ? data.active : 1,
+      is_public: data.is_public !== undefined ? data.is_public : 1
+    };
+
+    return this.handleAPICall(() => this.client.createTestPlan(createParams));
+  }
+
+  async updateTestPlan(planId: string, data: any) {
+    validateSuiteId(planId); // Using suite validation for plan ID
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    // TestLink doesn't have a direct update test plan method
+    throw new Error('Test plan update not supported by TestLink API');
+  }
+
+  async deleteTestPlan(planId: string) {
+    validateSuiteId(planId); // Using suite validation for plan ID
+    return this.handleAPICall(() => this.client.deleteTestPlan({
+      testplanid: parseInt(planId)
+    }));
+  }
+
+  async getBuilds(planId: string) {
+    validateSuiteId(planId); // Using suite validation for plan ID
+    return this.handleAPICall(() => this.client.getBuildsForTestPlan({
+      testplanid: parseInt(planId)
+    }));
+  }
+
+  async createBuild(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Build data must be an object');
+    }
+    if (!data.plan_id || !data.name) {
+      throw new Error('Missing required fields: plan_id, name');
+    }
+    validateSuiteId(data.plan_id); // Using suite validation for plan ID
+    validateNonEmptyString(data.name, 'Build name');
+
+    const createParams = {
+      testplanid: parseInt(data.plan_id),
+      buildname: data.name,
+      buildnotes: data.notes || '',
+      active: data.active !== undefined ? data.active : 1,
+      open: data.open !== undefined ? data.open : 1,
+      releasedate: data.release_date || new Date().toISOString().split('T')[0]
+    };
+
+    return this.handleAPICall(() => this.client.createBuild(createParams));
+  }
+
+  async updateBuild(buildId: string, data: any) {
+    validateSuiteId(buildId); // Using suite validation for build ID
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    // TestLink doesn't have a direct update build method
+    throw new Error('Build update not supported by TestLink API');
+  }
+
+  async deleteBuild(buildId: string) {
+    validateSuiteId(buildId); // Using suite validation for build ID
+    return this.handleAPICall(() => this.client.closeBuild({
+      buildid: parseInt(buildId)
+    }));
+  }
+
+  async getTestExecutions(planId: string, buildId?: string) {
+    validateSuiteId(planId); // Using suite validation for plan ID
+    if (buildId) {
+      validateSuiteId(buildId);
+    }
+    
+    const params: any = { testplanid: parseInt(planId) };
+    if (buildId) {
+      params.buildid = parseInt(buildId);
+    }
+    
+    return this.handleAPICall(() => this.client.getAllExecutionsResults(params));
+  }
+
+  async createTestExecution(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Test execution data must be an object');
+    }
+    if (!data.test_case_id || !data.plan_id || !data.build_id || !data.status) {
+      throw new Error('Missing required fields: test_case_id, plan_id, build_id, status');
+    }
+    validateTestCaseId(data.test_case_id);
+    validateSuiteId(data.plan_id);
+    validateSuiteId(data.build_id);
+
+    const executionParams = {
+      testcaseid: parseTestCaseId(data.test_case_id),
+      testplanid: parseInt(data.plan_id),
+      buildid: parseInt(data.build_id),
+      status: data.status,
+      notes: data.notes || '',
+      platformid: data.platform_id ? data.platform_id : undefined,
+      steps: data.steps || []
+    };
+
+    return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
+  }
+
+  async updateTestExecution(executionId: string, data: any) {
+    validateSuiteId(executionId); // Using suite validation for execution ID
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    // TestLink doesn't have a direct update execution method
+    // We would need to create a new execution with updated data
+    throw new Error('Test execution update not supported by TestLink API');
+  }
+
+  async deleteTestExecution(executionId: string) {
+    validateSuiteId(executionId); // Using suite validation for execution ID
+    return this.handleAPICall(() => this.client.deleteExecution({
+      executionid: parseInt(executionId)
+    }));
+  }
+
+  async getRequirements(projectId: string) {
+    validateProjectId(projectId);
+    return this.handleAPICall(() => this.client.getRequirements({
+      testprojectid: parseInt(projectId)
+    }));
+  }
+
+  async createRequirement(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Requirement data must be an object');
+    }
+    if (!data.project_id || !data.title) {
+      throw new Error('Missing required fields: project_id, title');
+    }
+    validateProjectId(data.project_id);
+    validateNonEmptyString(data.title, 'Requirement title');
+
+    // TestLink doesn't have a direct create requirement method
+    throw new Error('Requirement creation not supported by TestLink API');
+  }
+
+  async updateRequirement(requirementId: string, data: any) {
+    validateSuiteId(requirementId); // Using suite validation for requirement ID
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    // TestLink doesn't have a direct update requirement method
+    throw new Error('Requirement update not supported by TestLink API');
+  }
+
+  async deleteRequirement(requirementId: string) {
+    validateSuiteId(requirementId); // Using suite validation for requirement ID
+    // TestLink doesn't have a direct delete requirement method
+    throw new Error('Requirement deletion not supported by TestLink API');
   }
 }
 
@@ -488,6 +733,370 @@ const tools: Tool[] = [
       },
       required: ['test_case_id']
     }
+  },
+  {
+    name: 'create_project',
+    description: 'Create a new test project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Project data',
+          properties: {
+            name: { type: 'string', description: 'Project name' },
+            prefix: { type: 'string', description: 'Test case prefix' },
+            notes: { type: 'string', description: 'Project notes' },
+            options: { type: 'object', description: 'Project options' }
+          },
+          required: ['name', 'prefix']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'update_project',
+    description: 'Update project settings',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The project ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Project data to update'
+        }
+      },
+      required: ['project_id', 'data']
+    }
+  },
+  {
+    name: 'delete_project',
+    description: 'Delete a project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The project ID to delete'
+        }
+      },
+      required: ['project_id']
+    }
+  },
+  {
+    name: 'update_test_suite',
+    description: 'Update test suite properties',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        suite_id: {
+          type: 'string',
+          description: 'The test suite ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Test suite data to update',
+          properties: {
+            name: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      },
+      required: ['suite_id', 'data']
+    }
+  },
+  {
+    name: 'delete_test_suite',
+    description: 'Delete a test suite',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        suite_id: {
+          type: 'string',
+          description: 'The test suite ID to delete'
+        }
+      },
+      required: ['suite_id']
+    }
+  },
+  {
+    name: 'list_test_plans',
+    description: 'List all test plans for a project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The project ID'
+        }
+      },
+      required: ['project_id']
+    }
+  },
+  {
+    name: 'create_test_plan',
+    description: 'Create a new test plan',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Test plan data',
+          properties: {
+            project_id: { type: 'string', description: 'Project ID' },
+            name: { type: 'string', description: 'Test plan name' },
+            notes: { type: 'string', description: 'Test plan notes' },
+            active: { type: 'number', description: 'Whether plan is active (1/0)' },
+            is_public: { type: 'number', description: 'Whether plan is public (1/0)' }
+          },
+          required: ['project_id', 'name']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'update_test_plan',
+    description: 'Update test plan details',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: {
+          type: 'string',
+          description: 'The test plan ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Test plan data to update'
+        }
+      },
+      required: ['plan_id', 'data']
+    }
+  },
+  {
+    name: 'delete_test_plan',
+    description: 'Delete a test plan',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: {
+          type: 'string',
+          description: 'The test plan ID to delete'
+        }
+      },
+      required: ['plan_id']
+    }
+  },
+  {
+    name: 'list_builds',
+    description: 'List all builds for a test plan',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: {
+          type: 'string',
+          description: 'The test plan ID'
+        }
+      },
+      required: ['plan_id']
+    }
+  },
+  {
+    name: 'create_build',
+    description: 'Create a new build',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Build data',
+          properties: {
+            plan_id: { type: 'string', description: 'Test plan ID' },
+            name: { type: 'string', description: 'Build name' },
+            notes: { type: 'string', description: 'Build notes' },
+            active: { type: 'number', description: 'Whether build is active (1/0)' },
+            open: { type: 'number', description: 'Whether build is open (1/0)' }
+          },
+          required: ['plan_id', 'name']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'update_build',
+    description: 'Update build info',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        build_id: {
+          type: 'string',
+          description: 'The build ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Build data to update'
+        }
+      },
+      required: ['build_id', 'data']
+    }
+  },
+  {
+    name: 'delete_build',
+    description: 'Delete a build',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        build_id: {
+          type: 'string',
+          description: 'The build ID to delete'
+        }
+      },
+      required: ['build_id']
+    }
+  },
+  {
+    name: 'read_test_execution',
+    description: 'Get test execution details',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: {
+          type: 'string',
+          description: 'The test plan ID'
+        },
+        build_id: {
+          type: 'string',
+          description: 'The build ID (optional)'
+        }
+      },
+      required: ['plan_id']
+    }
+  },
+  {
+    name: 'create_test_execution',
+    description: 'Record test execution result',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Test execution data',
+          properties: {
+            test_case_id: { type: 'string', description: 'Test case ID' },
+            plan_id: { type: 'string', description: 'Test plan ID' },
+            build_id: { type: 'string', description: 'Build ID' },
+            status: { type: 'string', description: 'Execution status (p/f/b)' },
+            notes: { type: 'string', description: 'Execution notes' },
+            platform_id: { type: 'string', description: 'Platform ID (optional)' }
+          },
+          required: ['test_case_id', 'plan_id', 'build_id', 'status']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'update_test_execution',
+    description: 'Modify execution details',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        execution_id: {
+          type: 'string',
+          description: 'The execution ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Execution data to update'
+        }
+      },
+      required: ['execution_id', 'data']
+    }
+  },
+  {
+    name: 'delete_test_execution',
+    description: 'Remove execution record',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        execution_id: {
+          type: 'string',
+          description: 'The execution ID to delete'
+        }
+      },
+      required: ['execution_id']
+    }
+  },
+  {
+    name: 'list_requirements',
+    description: 'Get all requirements for a project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The project ID'
+        }
+      },
+      required: ['project_id']
+    }
+  },
+  {
+    name: 'create_requirement',
+    description: 'Add new requirement',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Requirement data',
+          properties: {
+            project_id: { type: 'string', description: 'Project ID' },
+            title: { type: 'string', description: 'Requirement title' },
+            description: { type: 'string', description: 'Requirement description' }
+          },
+          required: ['project_id', 'title']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'update_requirement',
+    description: 'Modify requirement',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        requirement_id: {
+          type: 'string',
+          description: 'The requirement ID to update'
+        },
+        data: {
+          type: 'object',
+          description: 'Requirement data to update'
+        }
+      },
+      required: ['requirement_id', 'data']
+    }
+  },
+  {
+    name: 'delete_requirement',
+    description: 'Remove requirement',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        requirement_id: {
+          type: 'string',
+          description: 'The requirement ID to delete'
+        }
+      },
+      required: ['requirement_id']
+    }
   }
 ];
 
@@ -561,6 +1170,114 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'archive_test_case': {
         const result = await testlinkAPI.archiveTestCase(args.test_case_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_project': {
+        const result = await testlinkAPI.createProject(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_project': {
+        const result = await testlinkAPI.updateProject(args.project_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_project': {
+        const result = await testlinkAPI.deleteProject(args.project_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_test_suite': {
+        const result = await testlinkAPI.updateTestSuite(args.suite_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_test_suite': {
+        const result = await testlinkAPI.deleteTestSuite(args.suite_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'list_test_plans': {
+        const result = await testlinkAPI.getTestPlans(args.project_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_test_plan': {
+        const result = await testlinkAPI.createTestPlan(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_test_plan': {
+        const result = await testlinkAPI.updateTestPlan(args.plan_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_test_plan': {
+        const result = await testlinkAPI.deleteTestPlan(args.plan_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'list_builds': {
+        const result = await testlinkAPI.getBuilds(args.plan_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_build': {
+        const result = await testlinkAPI.createBuild(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_build': {
+        const result = await testlinkAPI.updateBuild(args.build_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_build': {
+        const result = await testlinkAPI.deleteBuild(args.build_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'read_test_execution': {
+        const result = await testlinkAPI.getTestExecutions(
+          args.plan_id as string, 
+          args.build_id as string | undefined
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_test_execution': {
+        const result = await testlinkAPI.createTestExecution(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_test_execution': {
+        const result = await testlinkAPI.updateTestExecution(args.execution_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_test_execution': {
+        const result = await testlinkAPI.deleteTestExecution(args.execution_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'list_requirements': {
+        const result = await testlinkAPI.getRequirements(args.project_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_requirement': {
+        const result = await testlinkAPI.createRequirement(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_requirement': {
+        const result = await testlinkAPI.updateRequirement(args.requirement_id as string, args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_requirement': {
+        const result = await testlinkAPI.deleteRequirement(args.requirement_id as string);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
