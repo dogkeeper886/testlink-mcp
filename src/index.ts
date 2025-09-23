@@ -188,43 +188,6 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.getProjects());
   }
 
-  async createProject(data: any) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('Project data must be an object');
-    }
-    if (!data.name || !data.prefix) {
-      throw new Error('Missing required fields: name, prefix');
-    }
-    validateNonEmptyString(data.name, 'Project name');
-    validateNonEmptyString(data.prefix, 'Project prefix');
-
-    const createParams = {
-      testprojectname: data.name,
-      testcaseprefix: data.prefix,
-      notes: data.notes || '',
-      opt: data.options || { requirementsEnabled: 1, testPriorityEnabled: 1, automationEnabled: 1, inventoryEnabled: 1 }
-    };
-
-    return this.handleAPICall(() => this.client.createTestProject(createParams));
-  }
-
-  async updateProject(projectId: string, data: any) {
-    validateProjectId(projectId);
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-
-    // TestLink doesn't have a direct update project method
-    // We'll need to use custom fields or other approaches
-    throw new Error('Project update not supported by TestLink API');
-  }
-
-  async deleteProject(projectId: string) {
-    validateProjectId(projectId);
-    return this.handleAPICall(() => this.client.deleteTestProject({
-      prefix: projectId
-    }));
-  }
 
   async getTestSuites(projectId: string) {
     validateProjectId(projectId);
@@ -737,59 +700,6 @@ const tools: Tool[] = [
     }
   },
   {
-    name: 'create_project',
-    description: 'Create a new test project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          description: 'Project data',
-          properties: {
-            name: { type: 'string', description: 'Project name' },
-            prefix: { type: 'string', description: 'Test case prefix' },
-            notes: { type: 'string', description: 'Project notes' },
-            options: { type: 'object', description: 'Project options' }
-          },
-          required: ['name', 'prefix']
-        }
-      },
-      required: ['data']
-    }
-  },
-  {
-    name: 'update_project',
-    description: 'Update project settings',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: {
-          type: 'string',
-          description: 'The project ID to update'
-        },
-        data: {
-          type: 'object',
-          description: 'Project data to update'
-        }
-      },
-      required: ['project_id', 'data']
-    }
-  },
-  {
-    name: 'delete_project',
-    description: 'Delete a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: {
-          type: 'string',
-          description: 'The project ID to delete'
-        }
-      },
-      required: ['project_id']
-    }
-  },
-  {
     name: 'update_test_suite',
     description: 'Update test suite properties',
     inputSchema: {
@@ -1175,20 +1085,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'create_project': {
-        const result = await testlinkAPI.createProject(args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'update_project': {
-        const result = await testlinkAPI.updateProject(args.project_id as string, args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'delete_project': {
-        const result = await testlinkAPI.deleteProject(args.project_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
       case 'update_test_suite': {
         const result = await testlinkAPI.updateTestSuite(args.suite_id as string, args.data);
