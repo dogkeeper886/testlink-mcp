@@ -73,6 +73,8 @@ class TestLinkAPI {
     const parsedUrl = new URL(url);
     this.client = new TestLink({
       host: parsedUrl.hostname,
+      port: parsedUrl.port ? parseInt(parsedUrl.port) : undefined,
+      secure: parsedUrl.protocol === 'https:',
       rpcPath: parsedUrl.pathname + '/lib/api/xmlrpc/v1/xmlrpc.php',
       apiKey: apiKey
     });
