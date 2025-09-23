@@ -260,14 +260,16 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createTestSuite(params));
   }
 
-  async updateTestSuite(suiteId: string, data: any) {
+  async updateTestSuite(suiteId: string, projectId: string, data: any) {
     validateSuiteId(suiteId);
+    validateProjectId(projectId);
     if (!data || typeof data !== 'object') {
       throw new Error('Update data must be an object');
     }
 
     const updateParams: any = {
-      testsuiteid: parseInt(suiteId)
+      testsuiteid: parseInt(suiteId),
+      testprojectid: parseInt(projectId)
     };
 
     if (data.name) updateParams.testsuitename = data.name;
@@ -276,12 +278,6 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.updateTestSuite(updateParams));
   }
 
-  async deleteTestSuite(suiteId: string) {
-    validateSuiteId(suiteId);
-    // TestLink doesn't have a direct delete test suite method
-    // We'll need to use a different approach or mark as obsolete
-    throw new Error('Test suite deletion not supported by TestLink API');
-  }
 
   async archiveTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
@@ -709,6 +705,10 @@ const tools: Tool[] = [
           type: 'string',
           description: 'The test suite ID to update'
         },
+        project_id: {
+          type: 'string',
+          description: 'The test project ID'
+        },
         data: {
           type: 'object',
           description: 'Test suite data to update',
@@ -718,21 +718,7 @@ const tools: Tool[] = [
           }
         }
       },
-      required: ['suite_id', 'data']
-    }
-  },
-  {
-    name: 'delete_test_suite',
-    description: 'Delete a test suite',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        suite_id: {
-          type: 'string',
-          description: 'The test suite ID to delete'
-        }
-      },
-      required: ['suite_id']
+      required: ['suite_id', 'project_id', 'data']
     }
   },
   {
@@ -1087,14 +1073,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 
       case 'update_test_suite': {
-        const result = await testlinkAPI.updateTestSuite(args.suite_id as string, args.data);
+        const result = await testlinkAPI.updateTestSuite(args.suite_id as string, args.project_id as string, args.data);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'delete_test_suite': {
-        const result = await testlinkAPI.deleteTestSuite(args.suite_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
       case 'list_test_plans': {
         const result = await testlinkAPI.getTestPlans(args.project_id as string);
