@@ -212,13 +212,6 @@ class TestLinkAPI {
     }));
   }
 
-  async searchTestCases(projectId: string, searchText: string) {
-    validateProjectId(projectId);
-    validateNonEmptyString(searchText, 'Search text');
-    return this.handleAPICall(() => this.client.getTestCaseIDByName({
-      testcasename: searchText
-    }));
-  }
 
 
   async createTestSuite(projectId: string, suiteName: string, details: string = '', parentId?: string) {
@@ -568,24 +561,6 @@ const tools: Tool[] = [
         }
       },
       required: ['suite_id']
-    }
-  },
-  {
-    name: 'search_test_cases',
-    description: 'Search for test cases by exact name match in a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: {
-          type: 'string',
-          description: 'The test project ID'
-        },
-        search_text: {
-          type: 'string',
-          description: 'Exact test case name to search for (case-sensitive, exact match only)'
-        }
-      },
-      required: ['project_id', 'search_text']
     }
   },
   {
@@ -945,10 +920,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'search_test_cases': {
-        const result = await testlinkAPI.searchTestCases(args.project_id as string, args.search_text as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
 
       case 'create_test_suite': {
