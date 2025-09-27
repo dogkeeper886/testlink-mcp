@@ -220,25 +220,6 @@ class TestLinkAPI {
     }));
   }
 
-  async bulkUpdateTestCases(testCaseIds: string[], data: any) {
-    if (!Array.isArray(testCaseIds) || testCaseIds.length === 0) {
-      throw new Error('Test case IDs must be a non-empty array');
-    }
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-    
-    const results = [];
-    for (const id of testCaseIds) {
-      try {
-        const result = await this.updateTestCase(id, data);
-        results.push({ id, success: true, result });
-      } catch (error: any) {
-        results.push({ id, success: false, error: error.message });
-      }
-    }
-    return results;
-  }
 
   async createTestSuite(projectId: string, suiteName: string, details: string = '', parentId?: string) {
     validateProjectId(projectId);
@@ -608,34 +589,6 @@ const tools: Tool[] = [
     }
   },
   {
-    name: 'bulk_update_test_cases',
-    description: 'Update multiple test cases at once with the same data',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        test_case_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of test case IDs to update'
-        },
-        data: {
-          type: 'object',
-          description: 'Test case data to apply to all selected cases',
-          properties: {
-            name: { type: 'string' },
-            summary: { type: 'string' },
-            preconditions: { type: 'string' },
-            steps: { type: 'array' },
-            importance: { type: 'number' },
-            execution_type: { type: 'number' },
-            status: { type: 'number' }
-          }
-        }
-      },
-      required: ['test_case_ids', 'data']
-    }
-  },
-  {
     name: 'create_test_suite',
     description: 'Create a new test suite in a project',
     inputSchema: {
@@ -997,10 +950,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'bulk_update_test_cases': {
-        const result = await testlinkAPI.bulkUpdateTestCases(args.test_case_ids as string[], args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
       case 'create_test_suite': {
         const result = await testlinkAPI.createTestSuite(
