@@ -348,17 +348,7 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createBuild(createParams));
   }
 
-  async updateBuild(buildId: string, data: any) {
-    validateSuiteId(buildId); // Using suite validation for build ID
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-
-    // TestLink doesn't have a direct update build method
-    throw new Error('Build update not supported by TestLink API');
-  }
-
-  async deleteBuild(buildId: string) {
+  async closeBuild(buildId: string) {
     validateSuiteId(buildId); // Using suite validation for build ID
     return this.handleAPICall(() => this.client.closeBuild({
       buildid: parseInt(buildId)
@@ -403,23 +393,6 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
   }
 
-  async updateTestExecution(executionId: string, data: any) {
-    validateSuiteId(executionId); // Using suite validation for execution ID
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-
-    // TestLink doesn't have a direct update execution method
-    // We would need to create a new execution with updated data
-    throw new Error('Test execution update not supported by TestLink API');
-  }
-
-  async deleteTestExecution(executionId: string) {
-    validateSuiteId(executionId); // Using suite validation for execution ID
-    return this.handleAPICall(() => this.client.deleteExecution({
-      executionid: parseInt(executionId)
-    }));
-  }
 
   async getRequirements(projectId: string) {
     validateProjectId(projectId);
@@ -749,32 +722,14 @@ const tools: Tool[] = [
     }
   },
   {
-    name: 'update_build',
-    description: 'Update build info',
+    name: 'close_build',
+    description: 'Close a build (prevents new test executions)',
     inputSchema: {
       type: 'object',
       properties: {
         build_id: {
           type: 'string',
-          description: 'The build ID to update'
-        },
-        data: {
-          type: 'object',
-          description: 'Build data to update'
-        }
-      },
-      required: ['build_id', 'data']
-    }
-  },
-  {
-    name: 'delete_build',
-    description: 'Delete a build',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        build_id: {
-          type: 'string',
-          description: 'The build ID to delete'
+          description: 'The build ID to close'
         }
       },
       required: ['build_id']
@@ -819,38 +774,6 @@ const tools: Tool[] = [
         }
       },
       required: ['data']
-    }
-  },
-  {
-    name: 'update_test_execution',
-    description: 'Modify execution details',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        execution_id: {
-          type: 'string',
-          description: 'The execution ID to update'
-        },
-        data: {
-          type: 'object',
-          description: 'Execution data to update'
-        }
-      },
-      required: ['execution_id', 'data']
-    }
-  },
-  {
-    name: 'delete_test_execution',
-    description: 'Remove execution record',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        execution_id: {
-          type: 'string',
-          description: 'The execution ID to delete'
-        }
-      },
-      required: ['execution_id']
     }
   },
   {
@@ -991,13 +914,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'update_build': {
-        const result = await testlinkAPI.updateBuild(args.build_id as string, args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'delete_build': {
-        const result = await testlinkAPI.deleteBuild(args.build_id as string);
+      case 'close_build': {
+        const result = await testlinkAPI.closeBuild(args.build_id as string);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
@@ -1014,15 +932,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'update_test_execution': {
-        const result = await testlinkAPI.updateTestExecution(args.execution_id as string, args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'delete_test_execution': {
-        const result = await testlinkAPI.deleteTestExecution(args.execution_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
       case 'list_requirements': {
         return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirements(args.project_id as string), null, 2) }] };
