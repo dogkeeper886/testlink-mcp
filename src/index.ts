@@ -268,11 +268,11 @@ class TestLinkAPI {
     if (!data.project_id || !data.name) {
       throw new Error('Missing required fields: project_id, name');
     }
-    validateProjectId(data.project_id);
+    validateNonEmptyString(data.project_id, 'Project ID/prefix');
     validateNonEmptyString(data.name, 'Test plan name');
 
     const createParams = {
-      testprojectid: parseInt(data.project_id),
+      testprojectname: data.project_id, // Use project prefix instead of numeric ID
       testplanname: data.name,
       notes: data.notes || '',
       active: data.active !== undefined ? data.active : 1,
@@ -282,20 +282,40 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createTestPlan(createParams));
   }
 
-  async updateTestPlan(planId: string, data: any) {
-    validateSuiteId(planId); // Using suite validation for plan ID
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-
-    // TestLink doesn't have a direct update test plan method
-    throw new Error('Test plan update not supported by TestLink API');
-  }
 
   async deleteTestPlan(planId: string) {
     validateSuiteId(planId); // Using suite validation for plan ID
     return this.handleAPICall(() => this.client.deleteTestPlan({
       testplanid: parseInt(planId)
+    }));
+  }
+
+  async getTestCasesForTestPlan(planId: string) {
+    validateSuiteId(planId);
+    return this.handleAPICall(() => this.client.getTestCasesForTestPlan({
+      testplanid: parseInt(planId)
+    }));
+  }
+
+  async addTestCaseToTestPlan(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid assignment data');
+    }
+    if (!data.testcaseid || !data.testplanid || !data.testprojectid) {
+      throw new Error('Missing required fields');
+    }
+    validateTestCaseId(data.testcaseid);
+    validateSuiteId(data.testplanid);
+    validateProjectId(data.testprojectid);
+
+    return this.handleAPICall(() => this.client.addTestCaseToTestPlan({
+      testprojectid: parseInt(data.testprojectid),
+      testplanid: parseInt(data.testplanid),
+      testcaseexternalid: data.testcaseid,
+      version: data.version || 1,
+      platformid: data.platformid ? parseInt(data.platformid) : undefined,
+      urgency: data.urgency || 2,
+      overwrite: data.overwrite || false
     }));
   }
 
@@ -641,24 +661,6 @@ const tools: Tool[] = [
     }
   },
   {
-    name: 'update_test_plan',
-    description: 'Update test plan details',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        plan_id: {
-          type: 'string',
-          description: 'The test plan ID to update'
-        },
-        data: {
-          type: 'object',
-          description: 'Test plan data to update'
-        }
-      },
-      required: ['plan_id', 'data']
-    }
-  },
-  {
     name: 'delete_test_plan',
     description: 'Delete a test plan',
     inputSchema: {
@@ -670,6 +672,44 @@ const tools: Tool[] = [
         }
       },
       required: ['plan_id']
+    }
+  },
+  {
+    name: 'get_test_cases_for_test_plan',
+    description: 'List all test cases in a test plan',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: {
+          type: 'string',
+          description: 'The test plan ID'
+        }
+      },
+      required: ['plan_id']
+    }
+  },
+  {
+    name: 'add_test_case_to_test_plan',
+    description: 'Add a test case to a test plan',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Test case assignment data',
+          properties: {
+            testcaseid: { type: 'string', description: 'Test case external ID (e.g., GPDL-1)' },
+            testplanid: { type: 'string', description: 'Test plan ID' },
+            testprojectid: { type: 'string', description: 'Test project ID' },
+            version: { type: 'number', description: 'Test case version (optional, defaults to 1)' },
+            platformid: { type: 'string', description: 'Platform ID (optional)' },
+            urgency: { type: 'number', description: 'Urgency level (1=low, 2=medium, 3=high, optional, defaults to 2)' },
+            overwrite: { type: 'boolean', description: 'Overwrite existing assignment (optional, defaults to false)' }
+          },
+          required: ['testcaseid', 'testplanid', 'testprojectid']
+        }
+      },
+      required: ['data']
     }
   },
   {
@@ -925,13 +965,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'update_test_plan': {
-        const result = await testlinkAPI.updateTestPlan(args.plan_id as string, args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
       case 'delete_test_plan': {
         const result = await testlinkAPI.deleteTestPlan(args.plan_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'get_test_cases_for_test_plan': {
+        const result = await testlinkAPI.getTestCasesForTestPlan(args.plan_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'add_test_case_to_test_plan': {
+        const result = await testlinkAPI.addTestCaseToTestPlan(args.data);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
