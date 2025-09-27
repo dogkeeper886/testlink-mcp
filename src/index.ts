@@ -253,17 +253,6 @@ class TestLinkAPI {
   }
 
 
-  async archiveTestCase(testCaseId: string) {
-    validateTestCaseId(testCaseId);
-    // Get current test case to prepend [ARCHIVED] to summary
-    const testCase = await this.getTestCase(testCaseId);
-    const currentSummary = Array.isArray(testCase) && testCase[0] ? testCase[0].summary : '';
-    
-    return this.updateTestCase(testCaseId, { 
-      status: 7, // Status 7 is typically used for obsolete/archived
-      summary: '[ARCHIVED] ' + currentSummary
-    });
-  }
 
   async getTestPlans(projectId: string) {
     validateProjectId(projectId);
@@ -587,20 +576,6 @@ const tools: Tool[] = [
         }
       },
       required: ['project_id', 'suite_name']
-    }
-  },
-  {
-    name: 'archive_test_case',
-    description: 'Archive a test case (marks as obsolete and adds [ARCHIVED] prefix)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        test_case_id: {
-          type: 'string',
-          description: 'The test case ID to archive'
-        }
-      },
-      required: ['test_case_id']
     }
   },
   {
@@ -932,10 +907,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
-      case 'archive_test_case': {
-        const result = await testlinkAPI.archiveTestCase(args.test_case_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
 
 
       case 'update_test_suite': {
