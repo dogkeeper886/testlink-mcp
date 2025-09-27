@@ -4,13 +4,15 @@ A Model Context Protocol (MCP) server for TestLink test case management, designe
 
 ## Features
 
-**RUCD Operations (Read → Update → Create → Delete Priority)**
-- **Read** test cases, projects, suites with comprehensive search
-- **Update** test cases individually or in bulk with validation
-- **Create** new test cases and test suites programmatically  
-- **Delete** or archive test cases safely
-- Advanced search and filtering capabilities
-- Comprehensive error handling and input validation
+**Comprehensive TestLink Integration**
+- **Test Case Management**: Create, read, update, delete test cases with full validation
+- **Test Suite Operations**: Manage test suites and organize test cases
+- **Test Plan Management**: Create test plans, assign test cases, manage builds
+- **Test Execution**: Record and track test execution results
+- **Requirement Management**: Read requirements and link to test cases
+- **Project Management**: List and manage test projects
+- **Agent-Friendly Commands**: 16 comprehensive command files for AI agents
+- Advanced error handling and input validation
 - Multi-stage Docker containerization for optimal performance
 - Modern MCP SDK integration with STDIO transport
 - Native XML-RPC client for reliable TestLink API communication
@@ -20,14 +22,16 @@ A Model Context Protocol (MCP) server for TestLink test case management, designe
 Once installed, you can use natural language with Claude Code:
 
 ```
-"Read test case 123 and improve the test steps"
+"Read test case PROJ-1 and improve the test steps"
 "Create a new test case for login functionality"
-"Update test case 456 with more detailed expected results"
-"List all test cases in suite 789"
-"Search for test cases containing 'login' in project 1"
-"Update test cases 123, 456, 789 to set importance level to 3"
+"Update test case PROJ-2 with more detailed expected results"
+"List all test cases in suite 12"
 "Create a new test suite called 'Authentication Tests' in project 1"
-"Archive test case 999 as it's no longer relevant"
+"Create a test plan for the new release"
+"Add test case PROJ-1 to test plan 10"
+"Create a build for test plan 10"
+"Record test execution result for test case 1 in plan 10"
+"List all requirements for project 1"
 ```
 
 ## Quick Start
@@ -109,36 +113,96 @@ npm run dev
 
 ## Available MCP Tools
 
-### Test Case Operations (RUCD Priority Order)
+**Total: 22 MCP Tools** organized by functionality:
 
-#### Read Operations
+### Test Case Management (4 tools)
 - **read_test_case**: Fetch complete test case data
-  - Parameters: `test_case_id` (supports both numeric "50140" and external "ZD-15540" formats)
-- **list_projects**: Get all test projects
+  - Parameters: `test_case_id` (supports both numeric "50140" and external "PROJ-1" formats)
+- **create_test_case**: Create new test case with validation
+  - Parameters: `data` (requires: testprojectid, testsuiteid, name, authorlogin)
+- **update_test_case**: Update test case fields with full validation
+  - Parameters: `test_case_id`, `data` (object with fields to update)
+- **delete_test_case**: Remove test case permanently
+  - Parameters: `test_case_id`
+
+### Test Suite Management (4 tools)
 - **list_test_suites**: Get test suites for a project
   - Parameters: `project_id`
 - **list_test_cases_in_suite**: Get all test cases in a suite
   - Parameters: `suite_id`
-- **search_test_cases**: Search for test cases by exact name match in a project
-  - Parameters: `project_id`, `search_text`
-
-#### Update Operations
-- **update_test_case**: Update test case fields with full validation
-  - Parameters: `test_case_id`, `data` (object with fields to update)
-- **bulk_update_test_cases**: Update multiple test cases at once with the same data
-  - Parameters: `test_case_ids` (array), `data` (object with fields to update)
-
-#### Create Operations
-- **create_test_case**: Create new test case with validation
-  - Parameters: `data` (requires: testprojectid, testsuiteid, name, authorlogin)
 - **create_test_suite**: Create a new test suite in a project
   - Parameters: `project_id`, `suite_name`, `details` (optional), `parent_id` (optional)
+- **update_test_suite**: Update test suite properties
+  - Parameters: `suite_id`, `project_id`, `data`
 
-#### Delete Operations
-- **delete_test_case**: Remove test case permanently
-  - Parameters: `test_case_id`
-- **archive_test_case**: Archive a test case (marks as obsolete with [ARCHIVED] prefix)
-  - Parameters: `test_case_id`
+### Test Plan Management (5 tools)
+- **list_test_plans**: List all test plans for a project
+  - Parameters: `project_id`
+- **create_test_plan**: Create a new test plan
+  - Parameters: `data` (requires: project_id, name)
+- **delete_test_plan**: Delete a test plan
+  - Parameters: `plan_id`
+- **get_test_cases_for_test_plan**: List all test cases in a test plan
+  - Parameters: `plan_id`
+- **add_test_case_to_test_plan**: Add a test case to a test plan
+  - Parameters: `data` (requires: testcaseid, testplanid, testprojectid)
+
+### Build Management (3 tools)
+- **list_builds**: List all builds for a test plan
+  - Parameters: `plan_id`
+- **create_build**: Create a new build
+  - Parameters: `data` (requires: plan_id, name)
+- **close_build**: Close a build (prevents new test executions)
+  - Parameters: `build_id`
+
+### Test Execution Management (2 tools)
+- **read_test_execution**: Get test execution details
+  - Parameters: `plan_id`, `build_id` (optional)
+- **create_test_execution**: Record test execution result
+  - Parameters: `data` (requires: test_case_id, plan_id, build_id, status)
+
+### Requirement Management (2 tools)
+- **list_requirements**: Get all requirements for a project
+  - Parameters: `project_id`
+- **get_requirement**: Get detailed information about a specific requirement
+  - Parameters: `requirement_id`, `project_id`
+
+### Project Management (1 tool)
+- **list_projects**: Get all test projects
+  - Parameters: none
+
+## Agent-Friendly Command Files
+
+This MCP server includes 16 comprehensive command files in `.cursor/commands/` designed to guide AI agents in using the TestLink tools effectively:
+
+### Critical Priority Commands (4 files)
+- **add-test-case-to-test-plan.md**: Complex test case assignment with validation
+- **read-test-execution.md**: API limitation explanations and workarounds
+- **list-test-cases-in-suite.md**: Output interpretation and guidance
+- **get-test-cases-for-test-plan.md**: Execution status tracking and management
+
+### High Priority Commands (4 files)
+- **create-test-execution.md**: Test execution recording with error handling
+- **create-test-plan.md**: Test plan creation with HTML formatting guidance
+- **identify-test-type.md**: Test case type identification and prefixing
+- **create-test-case.md**: Test case creation with comprehensive validation
+
+### Standard Commands (8 files)
+- **update-test-case.md**: Test case updates with HTML formatting
+- **get-test-case.md**: Test case retrieval and interpretation
+- **create_test_suite.md**: Test suite creation with HTML support
+- **update_test_suite.md**: Test suite updates with validation
+- **list_projects.md**: Project listing with user-friendly display
+- **list_requirements.md**: Requirement listing and interpretation
+- **list_test_suites.md**: Test suite listing with organization
+- **testlink-format.md**: HTML formatting guidelines for TestLink content
+
+Each command file provides:
+- Step-by-step agent instructions
+- Input validation and error handling
+- Output interpretation guidance
+- Best practices and troubleshooting
+- Real-world examples and templates
 
 ## Setup & Configuration
 
