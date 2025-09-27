@@ -445,35 +445,15 @@ class TestLinkAPI {
     }));
   }
 
-  async createRequirement(data: any) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('Requirement data must be an object');
-    }
-    if (!data.project_id || !data.title) {
-      throw new Error('Missing required fields: project_id, title');
-    }
-    validateProjectId(data.project_id);
-    validateNonEmptyString(data.title, 'Requirement title');
-
-    // TestLink doesn't have a direct create requirement method
-    throw new Error('Requirement creation not supported by TestLink API');
+  async getRequirement(requirementId: string, projectId: string) {
+    validateSuiteId(requirementId);
+    validateProjectId(projectId);
+    return this.handleAPICall(() => this.client.getRequirement({
+      requirementid: parseInt(requirementId),
+      testprojectid: parseInt(projectId)
+    }));
   }
 
-  async updateRequirement(requirementId: string, data: any) {
-    validateSuiteId(requirementId); // Using suite validation for requirement ID
-    if (!data || typeof data !== 'object') {
-      throw new Error('Update data must be an object');
-    }
-
-    // TestLink doesn't have a direct update requirement method
-    throw new Error('Requirement update not supported by TestLink API');
-  }
-
-  async deleteRequirement(requirementId: string) {
-    validateSuiteId(requirementId); // Using suite validation for requirement ID
-    // TestLink doesn't have a direct delete requirement method
-    throw new Error('Requirement deletion not supported by TestLink API');
-  }
 }
 
 const server = new Server(
@@ -938,62 +918,28 @@ const tools: Tool[] = [
       properties: {
         project_id: {
           type: 'string',
-          description: 'The project ID'
+          description: 'The test project ID'
         }
       },
       required: ['project_id']
     }
   },
   {
-    name: 'create_requirement',
-    description: 'Add new requirement',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          description: 'Requirement data',
-          properties: {
-            project_id: { type: 'string', description: 'Project ID' },
-            title: { type: 'string', description: 'Requirement title' },
-            description: { type: 'string', description: 'Requirement description' }
-          },
-          required: ['project_id', 'title']
-        }
-      },
-      required: ['data']
-    }
-  },
-  {
-    name: 'update_requirement',
-    description: 'Modify requirement',
+    name: 'get_requirement',
+    description: 'Get detailed information about a specific requirement',
     inputSchema: {
       type: 'object',
       properties: {
         requirement_id: {
           type: 'string',
-          description: 'The requirement ID to update'
+          description: 'The requirement ID'
         },
-        data: {
-          type: 'object',
-          description: 'Requirement data to update'
-        }
-      },
-      required: ['requirement_id', 'data']
-    }
-  },
-  {
-    name: 'delete_requirement',
-    description: 'Remove requirement',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        requirement_id: {
+        project_id: {
           type: 'string',
-          description: 'The requirement ID to delete'
+          description: 'The test project ID'
         }
       },
-      required: ['requirement_id']
+      required: ['requirement_id', 'project_id']
     }
   }
 ];
@@ -1142,23 +1088,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_requirements': {
-        const result = await testlinkAPI.getRequirements(args.project_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirements(args.project_id as string), null, 2) }] };
       }
 
-      case 'create_requirement': {
-        const result = await testlinkAPI.createRequirement(args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'update_requirement': {
-        const result = await testlinkAPI.updateRequirement(args.requirement_id as string, args.data);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'delete_requirement': {
-        const result = await testlinkAPI.deleteRequirement(args.requirement_id as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      case 'get_requirement': {
+        return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirement(args.requirement_id as string, args.project_id as string), null, 2) }] };
       }
 
       default:
