@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server for TestLink test case management, designe
 - **Test Execution**: Record and track test execution results
 - **Requirement Management**: Read requirements and link to test cases
 - **Project Management**: List and manage test projects
-- **Agent-Friendly Commands**: 16 comprehensive command files for AI agents
+- **Agent-Friendly Commands**: 16 comprehensive command files for AI agents (available in both `.cursor/commands/` and `.claude/commands/`)
 - Advanced error handling and input validation
 - Multi-stage Docker containerization for optimal performance
 - Modern MCP SDK integration with STDIO transport
@@ -173,7 +173,9 @@ npm run dev
 
 ## Agent-Friendly Command Files
 
-This MCP server includes 16 comprehensive command files in `.cursor/commands/` designed to guide AI agents in using the TestLink tools effectively:
+This MCP server includes 16 comprehensive command files designed to guide AI agents in using the TestLink tools effectively. Command files are available in both:
+- **`.cursor/commands/`** - For Cursor IDE integration
+- **`.claude/commands/`** - For Claude Code integration
 
 ### Critical Priority Commands (4 files)
 - **add-test-case-to-test-plan.md**: Complex test case assignment with validation
@@ -265,11 +267,19 @@ docker push dogkeeper886/testlink-mcp:latest
 ```
 testlink-mcp-server/
 ├── src/
-│   └── index.ts       # Main MCP server implementation with XML-RPC client
-├── Dockerfile         # Docker configuration
-├── package.json       # Node dependencies (includes testlink-xmlrpc)
-├── tsconfig.json      # TypeScript configuration
-└── .env.example       # Environment variables template
+│   └── index.ts          # Main MCP server implementation with XML-RPC client
+├── dist/                 # Compiled TypeScript output (tracked in git)
+│   ├── index.js
+│   └── index.d.ts
+├── .cursor/
+│   └── commands/         # 16 command files for Cursor IDE
+├── .claude/
+│   └── commands/         # 16 command files for Claude Code
+├── docs/                 # Documentation and release notes
+├── Dockerfile            # Docker configuration
+├── package.json          # Node dependencies (includes testlink-xmlrpc)
+├── tsconfig.json         # TypeScript configuration
+└── .env.example          # Environment variables template
 ```
 
 ### Testing Locally
