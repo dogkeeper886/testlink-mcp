@@ -24,18 +24,18 @@ function parseTestCaseId(id: string): string {
     throw new Error('Test case ID must be a non-empty string');
   }
   
-  // Handle external ID format (ACX-50140) - extract numeric part
-  const externalIdMatch = id.match(/^[A-Z]+-(\d+)$/);
+  // Handle external ID format (PREFIX-123) - extract numeric part
+  const externalIdMatch = id.match(/^[A-Za-z0-9]+-(\d+)$/);
   if (externalIdMatch) {
     return externalIdMatch[1];
   }
-  
+
   // Handle pure numeric ID
   if (/^\d+$/.test(id)) {
     return id;
   }
-  
-  throw new Error('Test case ID must be either numeric (50140) or external format (ACX-50140)');
+
+  throw new Error('Test case ID must be either numeric (123) or external format (PREFIX-123)');
 }
 
 function validateTestCaseId(id: string): void {
@@ -115,8 +115,8 @@ class TestLinkAPI {
   async getTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
     
-    // If it looks like an external ID (ACX-50140), use testcaseexternalid
-    if (/^[A-Z]+-\d+$/.test(testCaseId)) {
+    // If it looks like an external ID (PREFIX-123), use testcaseexternalid
+    if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
       return this.handleAPICall(() => this.client.getTestCase({ 
         testcaseexternalid: testCaseId
       }));
@@ -435,7 +435,7 @@ const tools: Tool[] = [
       properties: {
         test_case_id: {
           type: 'string',
-          description: 'The TestLink test case ID (numeric like "50140" or external format like "ACX-50140")'
+          description: 'The TestLink test case ID (numeric like "123" or external format like "PREFIX-123")'
         }
       },
       required: ['test_case_id']

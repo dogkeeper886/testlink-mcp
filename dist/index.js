@@ -15,8 +15,8 @@ function parseTestCaseId(id) {
     if (!id || typeof id !== 'string') {
         throw new Error('Test case ID must be a non-empty string');
     }
-    // Handle external ID format (ACX-50140) - extract numeric part
-    const externalIdMatch = id.match(/^[A-Z]+-(\d+)$/);
+    // Handle external ID format (PREFIX-123) - extract numeric part
+    const externalIdMatch = id.match(/^[A-Za-z0-9]+-(\d+)$/);
     if (externalIdMatch) {
         return externalIdMatch[1];
     }
@@ -24,7 +24,7 @@ function parseTestCaseId(id) {
     if (/^\d+$/.test(id)) {
         return id;
     }
-    throw new Error('Test case ID must be either numeric (50140) or external format (ACX-50140)');
+    throw new Error('Test case ID must be either numeric (123) or external format (PREFIX-123)');
 }
 function validateTestCaseId(id) {
     parseTestCaseId(id); // This will throw if invalid
@@ -97,8 +97,8 @@ class TestLinkAPI {
     }
     async getTestCase(testCaseId) {
         validateTestCaseId(testCaseId);
-        // If it looks like an external ID (ACX-50140), use testcaseexternalid
-        if (/^[A-Z]+-\d+$/.test(testCaseId)) {
+        // If it looks like an external ID (PREFIX-123), use testcaseexternalid
+        if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
             return this.handleAPICall(() => this.client.getTestCase({
                 testcaseexternalid: testCaseId
             }));
@@ -186,32 +186,6 @@ class TestLinkAPI {
             details: Constants.Details.FULL
         }));
     }
-    async searchTestCases(projectId, searchText) {
-        validateProjectId(projectId);
-        validateNonEmptyString(searchText, 'Search text');
-        return this.handleAPICall(() => this.client.getTestCaseIDByName({
-            testcasename: searchText
-        }));
-    }
-    async bulkUpdateTestCases(testCaseIds, data) {
-        if (!Array.isArray(testCaseIds) || testCaseIds.length === 0) {
-            throw new Error('Test case IDs must be a non-empty array');
-        }
-        if (!data || typeof data !== 'object') {
-            throw new Error('Update data must be an object');
-        }
-        const results = [];
-        for (const id of testCaseIds) {
-            try {
-                const result = await this.updateTestCase(id, data);
-                results.push({ id, success: true, result });
-            }
-            catch (error) {
-                results.push({ id, success: false, error: error.message });
-            }
-        }
-        return results;
-    }
     async createTestSuite(projectId, suiteName, details = '', parentId) {
         validateProjectId(projectId);
         validateNonEmptyString(suiteName, 'Suite name');
@@ -228,35 +202,21 @@ class TestLinkAPI {
         }
         return this.handleAPICall(() => this.client.createTestSuite(params));
     }
-    async updateTestSuite(suiteId, data) {
+    async updateTestSuite(suiteId, projectId, data) {
         validateSuiteId(suiteId);
+        validateProjectId(projectId);
         if (!data || typeof data !== 'object') {
             throw new Error('Update data must be an object');
         }
         const updateParams = {
-            testsuiteid: parseInt(suiteId)
+            testsuiteid: parseInt(suiteId),
+            testprojectid: parseInt(projectId)
         };
         if (data.name)
             updateParams.testsuitename = data.name;
         if (data.details)
             updateParams.details = data.details;
         return this.handleAPICall(() => this.client.updateTestSuite(updateParams));
-    }
-    async deleteTestSuite(suiteId) {
-        validateSuiteId(suiteId);
-        // TestLink doesn't have a direct delete test suite method
-        // We'll need to use a different approach or mark as obsolete
-        throw new Error('Test suite deletion not supported by TestLink API');
-    }
-    async archiveTestCase(testCaseId) {
-        validateTestCaseId(testCaseId);
-        // Get current test case to prepend [ARCHIVED] to summary
-        const testCase = await this.getTestCase(testCaseId);
-        const currentSummary = Array.isArray(testCase) && testCase[0] ? testCase[0].summary : '';
-        return this.updateTestCase(testCaseId, {
-            status: 7, // Status 7 is typically used for obsolete/archived
-            summary: '[ARCHIVED] ' + currentSummary
-        });
     }
     async getTestPlans(projectId) {
         validateProjectId(projectId);
@@ -271,10 +231,10 @@ class TestLinkAPI {
         if (!data.project_id || !data.name) {
             throw new Error('Missing required fields: project_id, name');
         }
-        validateProjectId(data.project_id);
+        validateNonEmptyString(data.project_id, 'Project ID/prefix');
         validateNonEmptyString(data.name, 'Test plan name');
         const createParams = {
-            testprojectid: parseInt(data.project_id),
+            testprojectname: data.project_id, // Use project prefix instead of numeric ID
             testplanname: data.name,
             notes: data.notes || '',
             active: data.active !== undefined ? data.active : 1,
@@ -282,18 +242,36 @@ class TestLinkAPI {
         };
         return this.handleAPICall(() => this.client.createTestPlan(createParams));
     }
-    async updateTestPlan(planId, data) {
-        validateSuiteId(planId); // Using suite validation for plan ID
-        if (!data || typeof data !== 'object') {
-            throw new Error('Update data must be an object');
-        }
-        // TestLink doesn't have a direct update test plan method
-        throw new Error('Test plan update not supported by TestLink API');
-    }
     async deleteTestPlan(planId) {
         validateSuiteId(planId); // Using suite validation for plan ID
         return this.handleAPICall(() => this.client.deleteTestPlan({
             testplanid: parseInt(planId)
+        }));
+    }
+    async getTestCasesForTestPlan(planId) {
+        validateSuiteId(planId);
+        return this.handleAPICall(() => this.client.getTestCasesForTestPlan({
+            testplanid: parseInt(planId)
+        }));
+    }
+    async addTestCaseToTestPlan(data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid assignment data');
+        }
+        if (!data.testcaseid || !data.testplanid || !data.testprojectid) {
+            throw new Error('Missing required fields');
+        }
+        validateTestCaseId(data.testcaseid);
+        validateSuiteId(data.testplanid);
+        validateProjectId(data.testprojectid);
+        return this.handleAPICall(() => this.client.addTestCaseToTestPlan({
+            testprojectid: parseInt(data.testprojectid),
+            testplanid: parseInt(data.testplanid),
+            testcaseexternalid: data.testcaseid,
+            version: data.version || 1,
+            platformid: data.platformid ? parseInt(data.platformid) : undefined,
+            urgency: data.urgency || 2,
+            overwrite: data.overwrite || false
         }));
     }
     async getBuilds(planId) {
@@ -321,15 +299,7 @@ class TestLinkAPI {
         };
         return this.handleAPICall(() => this.client.createBuild(createParams));
     }
-    async updateBuild(buildId, data) {
-        validateSuiteId(buildId); // Using suite validation for build ID
-        if (!data || typeof data !== 'object') {
-            throw new Error('Update data must be an object');
-        }
-        // TestLink doesn't have a direct update build method
-        throw new Error('Build update not supported by TestLink API');
-    }
-    async deleteBuild(buildId) {
+    async closeBuild(buildId) {
         validateSuiteId(buildId); // Using suite validation for build ID
         return this.handleAPICall(() => this.client.closeBuild({
             buildid: parseInt(buildId)
@@ -367,51 +337,19 @@ class TestLinkAPI {
         };
         return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
     }
-    async updateTestExecution(executionId, data) {
-        validateSuiteId(executionId); // Using suite validation for execution ID
-        if (!data || typeof data !== 'object') {
-            throw new Error('Update data must be an object');
-        }
-        // TestLink doesn't have a direct update execution method
-        // We would need to create a new execution with updated data
-        throw new Error('Test execution update not supported by TestLink API');
-    }
-    async deleteTestExecution(executionId) {
-        validateSuiteId(executionId); // Using suite validation for execution ID
-        return this.handleAPICall(() => this.client.deleteExecution({
-            executionid: parseInt(executionId)
-        }));
-    }
     async getRequirements(projectId) {
         validateProjectId(projectId);
         return this.handleAPICall(() => this.client.getRequirements({
             testprojectid: parseInt(projectId)
         }));
     }
-    async createRequirement(data) {
-        if (!data || typeof data !== 'object') {
-            throw new Error('Requirement data must be an object');
-        }
-        if (!data.project_id || !data.title) {
-            throw new Error('Missing required fields: project_id, title');
-        }
-        validateProjectId(data.project_id);
-        validateNonEmptyString(data.title, 'Requirement title');
-        // TestLink doesn't have a direct create requirement method
-        throw new Error('Requirement creation not supported by TestLink API');
-    }
-    async updateRequirement(requirementId, data) {
-        validateSuiteId(requirementId); // Using suite validation for requirement ID
-        if (!data || typeof data !== 'object') {
-            throw new Error('Update data must be an object');
-        }
-        // TestLink doesn't have a direct update requirement method
-        throw new Error('Requirement update not supported by TestLink API');
-    }
-    async deleteRequirement(requirementId) {
-        validateSuiteId(requirementId); // Using suite validation for requirement ID
-        // TestLink doesn't have a direct delete requirement method
-        throw new Error('Requirement deletion not supported by TestLink API');
+    async getRequirement(requirementId, projectId) {
+        validateSuiteId(requirementId);
+        validateProjectId(projectId);
+        return this.handleAPICall(() => this.client.getRequirement({
+            requirementid: parseInt(requirementId),
+            testprojectid: parseInt(projectId)
+        }));
     }
 }
 const server = new Server({
@@ -432,7 +370,7 @@ const tools = [
             properties: {
                 test_case_id: {
                     type: 'string',
-                    description: 'The TestLink test case ID (numeric like "50140" or external format like "ACX-50140")'
+                    description: 'The TestLink test case ID (numeric like "123" or external format like "PREFIX-123")'
                 }
             },
             required: ['test_case_id']
@@ -543,52 +481,6 @@ const tools = [
         }
     },
     {
-        name: 'search_test_cases',
-        description: 'Search for test cases by exact name match in a project',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                project_id: {
-                    type: 'string',
-                    description: 'The test project ID'
-                },
-                search_text: {
-                    type: 'string',
-                    description: 'Exact test case name to search for (case-sensitive, exact match only)'
-                }
-            },
-            required: ['project_id', 'search_text']
-        }
-    },
-    {
-        name: 'bulk_update_test_cases',
-        description: 'Update multiple test cases at once with the same data',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                test_case_ids: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: 'Array of test case IDs to update'
-                },
-                data: {
-                    type: 'object',
-                    description: 'Test case data to apply to all selected cases',
-                    properties: {
-                        name: { type: 'string' },
-                        summary: { type: 'string' },
-                        preconditions: { type: 'string' },
-                        steps: { type: 'array' },
-                        importance: { type: 'number' },
-                        execution_type: { type: 'number' },
-                        status: { type: 'number' }
-                    }
-                }
-            },
-            required: ['test_case_ids', 'data']
-        }
-    },
-    {
         name: 'create_test_suite',
         description: 'Create a new test suite in a project',
         inputSchema: {
@@ -615,20 +507,6 @@ const tools = [
         }
     },
     {
-        name: 'archive_test_case',
-        description: 'Archive a test case (marks as obsolete and adds [ARCHIVED] prefix)',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                test_case_id: {
-                    type: 'string',
-                    description: 'The test case ID to archive'
-                }
-            },
-            required: ['test_case_id']
-        }
-    },
-    {
         name: 'update_test_suite',
         description: 'Update test suite properties',
         inputSchema: {
@@ -637,6 +515,10 @@ const tools = [
                 suite_id: {
                     type: 'string',
                     description: 'The test suite ID to update'
+                },
+                project_id: {
+                    type: 'string',
+                    description: 'The test project ID'
                 },
                 data: {
                     type: 'object',
@@ -647,21 +529,7 @@ const tools = [
                     }
                 }
             },
-            required: ['suite_id', 'data']
-        }
-    },
-    {
-        name: 'delete_test_suite',
-        description: 'Delete a test suite',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                suite_id: {
-                    type: 'string',
-                    description: 'The test suite ID to delete'
-                }
-            },
-            required: ['suite_id']
+            required: ['suite_id', 'project_id', 'data']
         }
     },
     {
@@ -701,24 +569,6 @@ const tools = [
         }
     },
     {
-        name: 'update_test_plan',
-        description: 'Update test plan details',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                plan_id: {
-                    type: 'string',
-                    description: 'The test plan ID to update'
-                },
-                data: {
-                    type: 'object',
-                    description: 'Test plan data to update'
-                }
-            },
-            required: ['plan_id', 'data']
-        }
-    },
-    {
         name: 'delete_test_plan',
         description: 'Delete a test plan',
         inputSchema: {
@@ -730,6 +580,44 @@ const tools = [
                 }
             },
             required: ['plan_id']
+        }
+    },
+    {
+        name: 'get_test_cases_for_test_plan',
+        description: 'List all test cases in a test plan',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                plan_id: {
+                    type: 'string',
+                    description: 'The test plan ID'
+                }
+            },
+            required: ['plan_id']
+        }
+    },
+    {
+        name: 'add_test_case_to_test_plan',
+        description: 'Add a test case to a test plan',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                data: {
+                    type: 'object',
+                    description: 'Test case assignment data',
+                    properties: {
+                        testcaseid: { type: 'string', description: 'Test case external ID (e.g., GPDL-1)' },
+                        testplanid: { type: 'string', description: 'Test plan ID' },
+                        testprojectid: { type: 'string', description: 'Test project ID' },
+                        version: { type: 'number', description: 'Test case version (optional, defaults to 1)' },
+                        platformid: { type: 'string', description: 'Platform ID (optional)' },
+                        urgency: { type: 'number', description: 'Urgency level (1=low, 2=medium, 3=high, optional, defaults to 2)' },
+                        overwrite: { type: 'boolean', description: 'Overwrite existing assignment (optional, defaults to false)' }
+                    },
+                    required: ['testcaseid', 'testplanid', 'testprojectid']
+                }
+            },
+            required: ['data']
         }
     },
     {
@@ -769,32 +657,14 @@ const tools = [
         }
     },
     {
-        name: 'update_build',
-        description: 'Update build info',
+        name: 'close_build',
+        description: 'Close a build (prevents new test executions)',
         inputSchema: {
             type: 'object',
             properties: {
                 build_id: {
                     type: 'string',
-                    description: 'The build ID to update'
-                },
-                data: {
-                    type: 'object',
-                    description: 'Build data to update'
-                }
-            },
-            required: ['build_id', 'data']
-        }
-    },
-    {
-        name: 'delete_build',
-        description: 'Delete a build',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                build_id: {
-                    type: 'string',
-                    description: 'The build ID to delete'
+                    description: 'The build ID to close'
                 }
             },
             required: ['build_id']
@@ -842,38 +712,6 @@ const tools = [
         }
     },
     {
-        name: 'update_test_execution',
-        description: 'Modify execution details',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                execution_id: {
-                    type: 'string',
-                    description: 'The execution ID to update'
-                },
-                data: {
-                    type: 'object',
-                    description: 'Execution data to update'
-                }
-            },
-            required: ['execution_id', 'data']
-        }
-    },
-    {
-        name: 'delete_test_execution',
-        description: 'Remove execution record',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                execution_id: {
-                    type: 'string',
-                    description: 'The execution ID to delete'
-                }
-            },
-            required: ['execution_id']
-        }
-    },
-    {
         name: 'list_requirements',
         description: 'Get all requirements for a project',
         inputSchema: {
@@ -881,62 +719,28 @@ const tools = [
             properties: {
                 project_id: {
                     type: 'string',
-                    description: 'The project ID'
+                    description: 'The test project ID'
                 }
             },
             required: ['project_id']
         }
     },
     {
-        name: 'create_requirement',
-        description: 'Add new requirement',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                data: {
-                    type: 'object',
-                    description: 'Requirement data',
-                    properties: {
-                        project_id: { type: 'string', description: 'Project ID' },
-                        title: { type: 'string', description: 'Requirement title' },
-                        description: { type: 'string', description: 'Requirement description' }
-                    },
-                    required: ['project_id', 'title']
-                }
-            },
-            required: ['data']
-        }
-    },
-    {
-        name: 'update_requirement',
-        description: 'Modify requirement',
+        name: 'get_requirement',
+        description: 'Get detailed information about a specific requirement',
         inputSchema: {
             type: 'object',
             properties: {
                 requirement_id: {
                     type: 'string',
-                    description: 'The requirement ID to update'
+                    description: 'The requirement ID'
                 },
-                data: {
-                    type: 'object',
-                    description: 'Requirement data to update'
-                }
-            },
-            required: ['requirement_id', 'data']
-        }
-    },
-    {
-        name: 'delete_requirement',
-        description: 'Remove requirement',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                requirement_id: {
+                project_id: {
                     type: 'string',
-                    description: 'The requirement ID to delete'
+                    description: 'The test project ID'
                 }
             },
-            required: ['requirement_id']
+            required: ['requirement_id', 'project_id']
         }
     }
 ];
@@ -978,28 +782,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await testlinkAPI.getTestCasesForTestSuite(args.suite_id);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
-            case 'search_test_cases': {
-                const result = await testlinkAPI.searchTestCases(args.project_id, args.search_text);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'bulk_update_test_cases': {
-                const result = await testlinkAPI.bulkUpdateTestCases(args.test_case_ids, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
             case 'create_test_suite': {
                 const result = await testlinkAPI.createTestSuite(args.project_id, args.suite_name, args.details || '', args.parent_id);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
-            case 'archive_test_case': {
-                const result = await testlinkAPI.archiveTestCase(args.test_case_id);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
             case 'update_test_suite': {
-                const result = await testlinkAPI.updateTestSuite(args.suite_id, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'delete_test_suite': {
-                const result = await testlinkAPI.deleteTestSuite(args.suite_id);
+                const result = await testlinkAPI.updateTestSuite(args.suite_id, args.project_id, args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'list_test_plans': {
@@ -1010,12 +798,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await testlinkAPI.createTestPlan(args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
-            case 'update_test_plan': {
-                const result = await testlinkAPI.updateTestPlan(args.plan_id, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
             case 'delete_test_plan': {
                 const result = await testlinkAPI.deleteTestPlan(args.plan_id);
+                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+            }
+            case 'get_test_cases_for_test_plan': {
+                const result = await testlinkAPI.getTestCasesForTestPlan(args.plan_id);
+                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+            }
+            case 'add_test_case_to_test_plan': {
+                const result = await testlinkAPI.addTestCaseToTestPlan(args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'list_builds': {
@@ -1026,12 +818,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await testlinkAPI.createBuild(args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
-            case 'update_build': {
-                const result = await testlinkAPI.updateBuild(args.build_id, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'delete_build': {
-                const result = await testlinkAPI.deleteBuild(args.build_id);
+            case 'close_build': {
+                const result = await testlinkAPI.closeBuild(args.build_id);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'read_test_execution': {
@@ -1042,29 +830,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await testlinkAPI.createTestExecution(args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
-            case 'update_test_execution': {
-                const result = await testlinkAPI.updateTestExecution(args.execution_id, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'delete_test_execution': {
-                const result = await testlinkAPI.deleteTestExecution(args.execution_id);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
             case 'list_requirements': {
-                const result = await testlinkAPI.getRequirements(args.project_id);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirements(args.project_id), null, 2) }] };
             }
-            case 'create_requirement': {
-                const result = await testlinkAPI.createRequirement(args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'update_requirement': {
-                const result = await testlinkAPI.updateRequirement(args.requirement_id, args.data);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-            }
-            case 'delete_requirement': {
-                const result = await testlinkAPI.deleteRequirement(args.requirement_id);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+            case 'get_requirement': {
+                return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirement(args.requirement_id, args.project_id), null, 2) }] };
             }
             default:
                 throw new Error(`Unknown tool: ${name}`);
