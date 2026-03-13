@@ -188,6 +188,46 @@ When reviewing code, ask:
 - Error handling code: <15% of total
 - Time to error: <100ms from invalid input
 
+## Dev Workflow: GitHub Tracking
+
+### Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/gh-init "<feature>"` | Create milestone + dev labels for a new feature |
+| `/gh-track "<task>"` | Create issue under milestone with task checklist |
+| `/gh-status "<feature>"` | Show open issues and pending tasks for a milestone |
+| `/gh-close <issue#>` | Close issue with summary comment |
+| `/evolve` | Analyze project history, suggest improvements |
+
+### Branch Naming
+
+```
+<type>/<short-desc>-#<issue>
+```
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`
+
+### Issue Title Format
+
+```
+[<type>] <action description>
+```
+
+### Workflow
+
+1. `/gh-init` when starting a new feature or story
+2. `/gh-track` to break work into tracked issues
+3. Branch per issue, commit with `refs #N`
+4. Update issue checkboxes as tasks complete
+5. `/gh-close` or PR with `Fixes #N` when done
+6. `/gh-status` at session start to resume work
+
+### Labels
+
+- `feat`, `fix`, `refactor`, `docs`, `test` — task type
+- `priority:high`, `priority:med`, `priority:low` — urgency
+
 ---
 
 *Remember: Every line of code is a liability. The best code is no code.*
