@@ -1,0 +1,32 @@
+id: TC-BUILD-001
+name: Project Build Verification
+suite: build
+priority: 1
+timeout: 120000
+dependencies: []
+
+steps:
+  - name: Check Node.js version
+    command: node --version
+    expectPatterns:
+      - "v[0-9]+\\.[0-9]+\\.[0-9]+"
+
+  - name: Install dependencies
+    command: npm ci
+    timeout: 60000
+    rejectPatterns:
+      - "ERR!"
+
+  - name: Compile TypeScript
+    command: npm run build
+    timeout: 60000
+    rejectPatterns:
+      - "error TS"
+      - "Cannot find"
+
+criteria: |
+  Verify that the testlink-mcp server builds successfully:
+  - Node.js 20+ is installed
+  - npm ci installs all dependencies from lock file
+  - TypeScript compiles without errors
+  - dist/index.js is produced
