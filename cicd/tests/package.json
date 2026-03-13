@@ -10,6 +10,7 @@
     "test:build": "tsx src/cli.ts run --suite build",
     "test:integration": "tsx src/cli.ts run --suite integration",
     "test:e2e": "tsx src/cli.ts run --suite e2e",
+    "test:tool": "tsx src/cli.ts run --suite tool",
     "list": "tsx src/cli.ts list",
     "dev": "tsx src/cli.ts"
   },

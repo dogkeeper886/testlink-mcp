@@ -43,3 +43,13 @@ jobs:
       suite: e2e
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
+
+  tool:
+    name: Tool Integration Tests
+    needs: build
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: tool
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+    secrets: inherit

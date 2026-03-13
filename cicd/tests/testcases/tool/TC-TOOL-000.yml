@@ -1,0 +1,30 @@
+id: TC-TOOL-000
+name: "TestLink API Connection Smoke Test"
+suite: tool
+priority: 0
+timeout: 30000
+dependencies: [TC-BUILD-001]
+
+steps:
+  - name: "Verify TestLink env vars are set"
+    command: |
+      test -n "$TESTLINK_URL" && echo "TESTLINK_URL=$TESTLINK_URL" || (echo "TESTLINK_URL not set" && exit 1)
+      test -n "$TESTLINK_API_KEY" && echo "TESTLINK_API_KEY is set" || (echo "TESTLINK_API_KEY not set" && exit 1)
+    timeout: 5000
+    expectPatterns:
+      - "TESTLINK_URL="
+      - "TESTLINK_API_KEY is set"
+
+  - name: "Verify TestLink XML-RPC endpoint is reachable"
+    command: |
+      curl -sf -o /dev/null -w "HTTP %{http_code}" "$TESTLINK_URL/lib/api/xmlrpc/v1/xmlrpc.php"
+    timeout: 10000
+    expectPatterns:
+      - "HTTP 200"
+
+criteria: |
+  Verify that:
+  - TESTLINK_URL and TESTLINK_API_KEY environment variables are set
+  - The TestLink XML-RPC API endpoint responds with HTTP 200
+
+goal: "Confirm TestLink API is reachable before running tool tests"
