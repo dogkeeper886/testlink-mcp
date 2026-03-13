@@ -11,6 +11,7 @@ on:
           - "build"
           - "integration"
           - "e2e"
+          - "tool"
           - "all"
       judge_mode:
         description: "Test judge mode"
@@ -67,6 +68,9 @@ jobs:
 
       - name: Run tests
         id: run-tests
+        env:
+          TESTLINK_URL: ${{ secrets.TESTLINK_URL }}
+          TESTLINK_API_KEY: ${{ secrets.TESTLINK_API_KEY }}
         run: |
           cd cicd/tests
 
