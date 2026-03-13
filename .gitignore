@@ -76,8 +76,9 @@ Desktop.ini
 *~
 
 # Claude Code specific
-.claude/
+.claude/*
 !.claude/commands/
+!.claude/skills/
 
 # Cursor specific
 .cursor/
