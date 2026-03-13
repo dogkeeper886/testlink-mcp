@@ -1,0 +1,32 @@
+{
+  "name": "test-framework",
+  "version": "1.0.0",
+  "description": "Dual-judge test framework with YAML-based test definitions",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx src/cli.ts run",
+    "test:build": "tsx src/cli.ts run --suite build",
+    "test:integration": "tsx src/cli.ts run --suite integration",
+    "test:e2e": "tsx src/cli.ts run --suite e2e",
+    "list": "tsx src/cli.ts list",
+    "dev": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "glob": "^10.3.10",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

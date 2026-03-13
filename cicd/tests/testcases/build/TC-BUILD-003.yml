@@ -1,0 +1,30 @@
+id: TC-BUILD-003
+name: Build Output Verification
+suite: build
+priority: 3
+timeout: 30000
+dependencies:
+  - TC-BUILD-001
+
+steps:
+  - name: Check dist/index.js exists
+    command: test -f dist/index.js && echo "dist/index.js exists"
+    expectPatterns:
+      - "exists"
+
+  - name: Check dist/index.d.ts exists
+    command: test -f dist/index.d.ts && echo "dist/index.d.ts exists"
+    expectPatterns:
+      - "exists"
+
+  - name: Verify dist/index.js is valid JavaScript
+    command: node --check dist/index.js && echo "SYNTAX_OK"
+    timeout: 10000
+    expectPatterns:
+      - "SYNTAX_OK"
+
+criteria: |
+  Verify build artifacts are present and valid:
+  - dist/index.js compiled output exists
+  - dist/index.d.ts type declarations exist
+  - Entry point has valid JavaScript syntax

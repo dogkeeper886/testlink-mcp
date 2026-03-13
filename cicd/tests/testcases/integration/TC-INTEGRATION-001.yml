@@ -1,0 +1,34 @@
+id: TC-INTEGRATION-001
+name: Docker Image Build
+suite: integration
+priority: 1
+timeout: 180000
+dependencies:
+  - TC-BUILD-001
+
+steps:
+  - name: Build Docker image
+    command: docker build -t testlink-mcp:test .
+    timeout: 120000
+    rejectPatterns:
+      - "ERROR"
+      - "failed to"
+
+  - name: Verify image exists
+    command: docker image inspect testlink-mcp:test --format '{{.Id}}'
+    expectPatterns:
+      - "sha256:"
+
+  - name: Verify non-root user
+    command: docker inspect testlink-mcp:test --format '{{.Config.User}}'
+    expectPatterns:
+      - "nodejs"
+
+  - name: Cleanup test image
+    command: docker rmi testlink-mcp:test || true
+
+criteria: |
+  Verify Docker image builds correctly:
+  - Multi-stage Dockerfile builds without errors
+  - Image is created with correct tag
+  - Container runs as non-root user (nodejs)

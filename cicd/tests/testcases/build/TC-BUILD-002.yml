@@ -1,0 +1,21 @@
+id: TC-BUILD-002
+name: TypeScript Strict Type Check
+suite: build
+priority: 2
+timeout: 60000
+dependencies:
+  - TC-BUILD-001
+
+steps:
+  - name: Run type check (no emit)
+    command: npx tsc --noEmit
+    timeout: 60000
+    rejectPatterns:
+      - "error TS"
+      - "Cannot find module"
+
+criteria: |
+  Verify TypeScript strict mode passes:
+  - tsc --noEmit completes with zero errors
+  - All types resolve correctly
+  - No missing module declarations
