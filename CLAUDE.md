@@ -188,17 +188,99 @@ When reviewing code, ask:
 - Error handling code: <15% of total
 - Time to error: <100ms from invalid input
 
-## Dev Workflow: GitHub Tracking
+## Dev Workflow: Agent Lifecycle
 
 ### Commands
 
-| Command | Purpose |
-|---------|---------|
-| `/gh-init "<feature>"` | Create milestone + dev labels for a new feature |
-| `/gh-track "<task>"` | Create issue under milestone with task checklist |
-| `/gh-status "<feature>"` | Show open issues and pending tasks for a milestone |
-| `/gh-close <issue#>` | Close issue with summary comment |
-| `/evolve` | Analyze project history, suggest improvements |
+| Command | Purpose | Phase |
+|---------|---------|-------|
+| `/gh-init "<feature>"` | Create milestone + dev labels | Plan |
+| `/gh-track "<task>"` | Create issue under milestone with task checklist | Plan |
+| `/gh-status "<feature>"` | Show open issues and pending tasks | Any |
+| `/gh-implement <issue#>` | Create branch, implement tasks, update checkboxes | Build |
+| `/gh-test <issue#>` | Build + run tests, report results to issue | Verify |
+| `/gh-pr <issue#>` | Push branch, create PR with traceability | Deliver |
+| `/gh-merge <pr#>` | Merge PR, delete branch, close milestone if done | Deliver |
+| `/gh-close <issue#>` | Close issue with summary comment | Deliver |
+| `/evolve` | Analyze project history, suggest improvements | Any |
+
+### Lifecycle
+
+```
+User Request
+  │
+  ├─► PLAN: Enter plan mode, design solution
+  │   Trigger: User asks for a feature, fix, or change
+  │   Output: Plan with acceptance criteria, user approves
+  │
+  ├─► TRACK: /gh-init + /gh-track (once per task)
+  │   Trigger: User approves the plan
+  │   Output: Milestone, user story issue, task issues with checklists
+  │
+  ├─► IMPLEMENT: /gh-implement <issue#>
+  │   Trigger: Task issues exist and are open
+  │   Output: Branch with commits, checkboxes updated in real-time
+  │   Rule: Commit messages include "refs #N"
+  │   Rule: Check off each task checkbox as it completes
+  │
+  ├─► TEST: /gh-test
+  │   Trigger: All task checkboxes checked for the issue
+  │   Output: Build + test results reported to issue
+  │   Rule: Do NOT proceed if build or tests fail
+  │
+  ├─► PR: /gh-pr
+  │   Trigger: Tests pass
+  │   Output: PR with "Fixes #N", files changed, test results
+  │
+  ├─► MERGE: /gh-merge
+  │   Trigger: User says merge (NEVER auto-merge)
+  │   Output: Squash merge to main, branch deleted
+  │
+  └─► NEXT: /gh-status → pick next open issue or close milestone
+```
+
+### Agent Auto-Trigger Rules
+
+The agent advances automatically through the lifecycle EXCEPT before merge:
+
+1. After user approves plan → run `/gh-init` then `/gh-track` for each task
+2. After tracking complete → start `/gh-implement` on first open issue
+3. After all checkboxes checked → run `/gh-test`
+4. After tests pass → run `/gh-pr`
+5. After PR created → **STOP and wait for user** (merge is a human decision)
+6. After user says merge → run `/gh-merge`
+7. After merge, if more issues open → `/gh-implement` next issue
+8. After merge, if no issues open → close milestone, report done
+9. Implement issues sequentially (one branch per issue)
+
+### Traceability
+
+```
+User Story (milestone + story issue with acceptance criteria)
+  └─► Task Issue #N (checklist in body)
+       ├─► Branch: type/desc-#N
+       ├─► Commits: "refs #N"
+       ├─► Files: listed in issue "Files" section (updated during implementation)
+       └─► PR: "Fixes #N" → auto-closes issue on merge
+```
+
+The agent maintains this chain by:
+- Updating issue "Files" section when files are created/modified
+- Checking off task checkboxes as each task completes
+- Including `Fixes #N` in PR body to auto-close issue
+- Including files changed list in PR body
+
+### Checkpoint: Updating Issue Checkboxes
+
+During `/gh-implement`, after completing each task:
+
+```bash
+# Fetch current body (always fetch latest to avoid conflicts)
+BODY=$(gh issue view <number> --json body -q .body)
+# Replace "- [ ] Task" with "- [x] Task" for the completed task
+# Update issue
+gh issue edit <number> --body "$BODY"
+```
 
 ### Branch Naming
 
@@ -213,15 +295,6 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`
 ```
 [<type>] <action description>
 ```
-
-### Workflow
-
-1. `/gh-init` when starting a new feature or story
-2. `/gh-track` to break work into tracked issues
-3. Branch per issue, commit with `refs #N`
-4. Update issue checkboxes as tasks complete
-5. `/gh-close` or PR with `Fixes #N` when done
-6. `/gh-status` at session start to resume work
 
 ### Labels
 
