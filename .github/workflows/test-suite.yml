@@ -1,0 +1,113 @@
+name: Test Suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Test suite to run"
+        required: true
+        type: choice
+        options:
+          - "build"
+          - "integration"
+          - "e2e"
+          - "all"
+      judge_mode:
+        description: "Test judge mode"
+        required: false
+        default: "dual"
+        type: choice
+        options:
+          - "simple"
+          - "dual"
+      judge_model:
+        description: "LLM model for judging (if dual mode)"
+        required: false
+        default: "gemma3:12b-judge"
+        type: string
+  workflow_call:
+    inputs:
+      suite:
+        description: "Test suite to run"
+        required: true
+        type: string
+      judge_mode:
+        description: "Test judge mode (simple, dual)"
+        required: false
+        default: "dual"
+        type: string
+      judge_model:
+        description: "LLM model for judging"
+        required: false
+        default: "gemma3:12b-judge"
+        type: string
+    outputs:
+      result:
+        description: "Test result"
+        value: ${{ jobs.test.outputs.result }}
+
+jobs:
+  test:
+    name: Run ${{ inputs.suite }} Tests
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.run-tests.outcome }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install test runner dependencies
+        run: cd cicd/tests && npm ci
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          cd cicd/tests
+
+          # Build judge flags based on input
+          JUDGE_FLAGS=""
+          if [ "${{ inputs.judge_mode }}" = "simple" ]; then
+            JUDGE_FLAGS="--no-llm"
+          else
+            JUDGE_FLAGS="--judge-model ${{ inputs.judge_model || 'llama3:8b' }}"
+          fi
+
+          # Build suite flag
+          SUITE_FLAG=""
+          if [ "${{ inputs.suite }}" != "all" ]; then
+            SUITE_FLAG="--suite ${{ inputs.suite }}"
+          fi
+
+          echo "Suite: ${{ inputs.suite }}"
+          echo "Judge mode: ${{ inputs.judge_mode || 'dual' }}"
+          echo "Judge flags: $JUDGE_FLAGS"
+
+          # Run tests with JSON output
+          npx tsx src/cli.ts run $SUITE_FLAG $JUDGE_FLAGS --format json > /tmp/test-results.json || true
+
+          echo "--- JSON Results ---"
+          cat /tmp/test-results.json
+
+      - name: Check test results
+        run: |
+          FAILED=$(jq '.summary.failed' /tmp/test-results.json)
+          echo "Failed tests: $FAILED"
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::$FAILED test(s) failed"
+            exit 1
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.suite }}-test-results
+          path: |
+            /tmp/test-results.json
+            cicd/results/

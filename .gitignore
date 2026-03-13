@@ -89,3 +89,8 @@ Desktop.ini
 # Test results
 test-results/
 coverage/
+
+# CICD test framework
+cicd/results/*
+!cicd/results/.gitignore
+cicd/tests/node_modules/

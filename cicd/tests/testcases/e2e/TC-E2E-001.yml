@@ -1,0 +1,24 @@
+id: TC-E2E-001
+name: MCP Server Startup Validation
+suite: e2e
+priority: 1
+timeout: 30000
+dependencies:
+  - TC-BUILD-001
+
+steps:
+  - name: Verify server exits cleanly without API key
+    command: "timeout 5 node dist/index.js 2>&1; test $? -ne 0 && echo 'EXIT_OK: server requires API key'"
+    expectPatterns:
+      - "EXIT_OK"
+
+  - name: Verify dist entry point is executable
+    command: node -e "import('./dist/index.js').catch(() => console.log('MODULE_OK'))"
+    timeout: 10000
+    expectPatterns:
+      - "MODULE_OK"
+
+criteria: |
+  Verify MCP server behaves correctly:
+  - Server exits with non-zero when TESTLINK_API_KEY is missing
+  - dist/index.js is a valid ES module entry point

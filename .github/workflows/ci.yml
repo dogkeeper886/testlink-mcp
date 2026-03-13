@@ -1,0 +1,12 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Tests
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: build
+      judge_mode: simple

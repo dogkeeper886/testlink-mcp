@@ -1,0 +1,45 @@
+name: Full Test Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      judge_mode:
+        description: "Test judge mode"
+        required: false
+        default: "simple"
+        type: choice
+        options:
+          - "simple"
+          - "dual"
+      judge_model:
+        description: "LLM model for judging (if dual mode)"
+        required: false
+        default: "gemma3:12b-judge"
+        type: string
+
+jobs:
+  build:
+    name: Build Tests
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: build
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+
+  integration:
+    name: Integration Tests
+    needs: build
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: integration
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+
+  e2e:
+    name: E2E Tests
+    needs: build
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: e2e
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
