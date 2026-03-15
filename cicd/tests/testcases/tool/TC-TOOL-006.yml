@@ -1,0 +1,55 @@
+id: TC-TOOL-006
+name: "MCP Tool: create_test_suite"
+suite: tool
+priority: 6
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "Create a top-level suite"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite \
+        '{"project_id":"162","suite_name":"CI-Created-Suite","details":"Created by TC-TOOL-006"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      SUITE_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))")
+      echo "CREATED_SUITE_ID=$SUITE_ID"
+      echo "$SUITE_ID" > /tmp/tc-tool-006-suite-id.txt
+    timeout: 15000
+    expectPatterns:
+      - "CREATED_SUITE_ID="
+
+  - name: "Create a nested child suite"
+    command: |
+      PARENT_ID=$(cat /tmp/tc-tool-006-suite-id.txt)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite \
+        "{\"project_id\":\"162\",\"suite_name\":\"CI-Child-Suite\",\"details\":\"Child of CI-Created-Suite\",\"parent_id\":\"$PARENT_ID\"}" \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      CHILD_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))")
+      echo "CREATED_CHILD_ID=$CHILD_ID"
+    timeout: 15000
+    expectPatterns:
+      - "CREATED_CHILD_ID="
+
+  - name: "Verify created suite appears in listing"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites \
+        '{"project_id":"162"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "CI-Created-Suite" && echo "VERIFY_SUITE_OK"
+    timeout: 15000
+    expectPatterns:
+      - "VERIFY_SUITE_OK"
+
+criteria: |
+  Verify that:
+  - create_test_suite creates a top-level suite in project 162
+  - create_test_suite creates a nested suite with parent_id
+  - The created suite appears in list_test_suites output
+
+goal: "Test the create_test_suite MCP tool with top-level and nested suites"
