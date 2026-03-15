@@ -1,0 +1,40 @@
+id: TC-TOOL-007
+name: "MCP Tool: list_test_cases_in_suite"
+suite: tool
+priority: 7
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List test cases in CRUD Tests suite"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
+        '{"suite_id":"163"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "Read Test Case" && echo "FOUND_READ_CASE"
+      echo "$TEXT" | grep -q "Update Test Case" && echo "FOUND_UPDATE_CASE"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_READ_CASE"
+      - "FOUND_UPDATE_CASE"
+
+  - name: "List test cases in empty suite returns valid response"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
+        '{"suite_id":"164"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "EMPTY_SUITE_OK" || echo "EMPTY_SUITE_FAILED"
+    timeout: 15000
+    expectPatterns:
+      - "EMPTY_SUITE_OK"
+
+criteria: |
+  Verify that:
+  - list_test_cases_in_suite returns known cases from CRUD Tests suite (163)
+  - Listing cases in Plan Tests suite (164) returns a valid response
+
+goal: "Test the list_test_cases_in_suite MCP tool against real TestLink"
