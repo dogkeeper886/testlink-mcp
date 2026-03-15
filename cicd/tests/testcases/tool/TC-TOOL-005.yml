@@ -1,0 +1,28 @@
+id: TC-TOOL-005
+name: "MCP Tool: list_test_suites"
+suite: tool
+priority: 5
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List suites for testlink-mcp project"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites \
+        '{"project_id":"162"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "CRUD Tests" && echo "FOUND_CRUD_SUITE"
+      echo "$TEXT" | grep -q "Plan Tests" && echo "FOUND_PLAN_SUITE"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_CRUD_SUITE"
+      - "FOUND_PLAN_SUITE"
+
+criteria: |
+  Verify that:
+  - list_test_suites returns suites for project 162 (testlink-mcp)
+  - Known suites "CRUD Tests" (163) and "Plan Tests" (164) are present
+
+goal: "Test the list_test_suites MCP tool against real TestLink"
