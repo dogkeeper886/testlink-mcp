@@ -1,0 +1,50 @@
+id: TC-TOOL-012
+name: "MCP Tool: get_test_cases_for_test_plan"
+suite: tool
+priority: 12
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "Get test cases assigned to CI Test Plan"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts get_test_cases_for_test_plan \
+        '{"plan_id":"172"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "Plan Workflow Case" && echo "FOUND_WORKFLOW_CASE"
+      echo "$TEXT" | grep -q "tm-3" && echo "FOUND_EXTERNAL_ID"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_WORKFLOW_CASE"
+      - "FOUND_EXTERNAL_ID"
+
+  - name: "Verify response structure has expected fields"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts get_test_cases_for_test_plan \
+        '{"plan_id":"172"}' \
+        2>/dev/null)
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      python3 -c "
+      import sys, json
+      data = json.loads('''$TEXT''')
+      case = list(data.values())[0][0]
+      fields = ['tcase_name','tcase_id','version','exec_status','full_external_id']
+      missing = [f for f in fields if f not in case]
+      if missing:
+          print(f'MISSING_FIELDS={missing}')
+      else:
+          print('STRUCTURE_OK')
+      "
+    timeout: 15000
+    expectPatterns:
+      - "STRUCTURE_OK"
+
+criteria: |
+  Verify that:
+  - get_test_cases_for_test_plan returns cases from CI Test Plan (172)
+  - Known case "Plan Workflow Case" (tm-3) is present
+  - Response contains expected fields (tcase_name, tcase_id, version, exec_status, full_external_id)
+
+goal: "Test the get_test_cases_for_test_plan MCP tool against real TestLink"
