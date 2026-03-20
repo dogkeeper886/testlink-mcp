@@ -1,0 +1,50 @@
+id: TC-TOOL-016
+name: "MCP Tool: list_projects"
+suite: tool
+priority: 16
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List all projects"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_projects '{}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "testlink-mcp" && echo "FOUND_PROJECT"
+      echo "$TEXT" | python3 -c "import sys,json; projects=json.load(sys.stdin); print(f'PROJECT_COUNT={len(projects)}')"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_PROJECT"
+      - "PROJECT_COUNT="
+
+  - name: "Verify project structure has expected fields"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_projects '{}' \
+        2>/dev/null)
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      python3 -c "
+      import json
+      projects = json.loads('''$TEXT''')
+      proj = [p for p in projects if p['name'] == 'testlink-mcp'][0]
+      fields = ['id','name','prefix','active','is_public']
+      missing = [f for f in fields if f not in proj]
+      if missing:
+          print(f'MISSING_FIELDS={missing}')
+      elif proj['id'] == '162' and proj['prefix'] == 'tm':
+          print('STRUCTURE_OK')
+      else:
+          print(f'UNEXPECTED_VALUES id={proj[\"id\"]} prefix={proj[\"prefix\"]}')
+      "
+    timeout: 15000
+    expectPatterns:
+      - "STRUCTURE_OK"
+
+criteria: |
+  Verify that:
+  - list_projects returns at least one project
+  - Known project "testlink-mcp" (id:162, prefix:tm) is present
+  - Response contains expected fields (id, name, prefix, active, is_public)
+
+goal: "Test the list_projects MCP tool against real TestLink"
