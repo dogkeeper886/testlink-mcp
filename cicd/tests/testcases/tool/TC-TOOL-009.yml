@@ -1,0 +1,28 @@
+id: TC-TOOL-009
+name: "MCP Tool: list_test_plans"
+suite: tool
+priority: 9
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List test plans for testlink-mcp project"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_plans \
+        '{"project_id":"162"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "CI Test Plan" && echo "FOUND_CI_PLAN"
+      echo "$TEXT" | python3 -c "import sys,json; plans=json.load(sys.stdin); print(f'PLAN_COUNT={len(plans)}')"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_CI_PLAN"
+      - "PLAN_COUNT="
+
+criteria: |
+  Verify that:
+  - list_test_plans returns plans for project 162 (testlink-mcp)
+  - Known plan "CI Test Plan" (172) is present in the response
+
+goal: "Test the list_test_plans MCP tool against real TestLink"

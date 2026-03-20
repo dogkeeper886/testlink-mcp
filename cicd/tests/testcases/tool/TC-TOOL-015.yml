@@ -1,0 +1,85 @@
+id: TC-TOOL-015
+name: "MCP Tool: close_build + delete_test_plan"
+suite: tool
+priority: 15
+timeout: 45000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "Create a temporary plan and build"
+    command: |
+      STAMP=$(date +%s)
+      PLAN_NAME="CI-Cleanup-$STAMP"
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan \
+        "{\"data\":{\"project_id\":\"testlink-mcp\",\"name\":\"$PLAN_NAME\",\"notes\":\"Temp plan for TC-TOOL-015\"}}" \
+        2>/dev/null)
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      PLAN_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
+      echo "PLAN_ID=$PLAN_ID"
+      echo "$PLAN_ID" > /tmp/tc-tool-015-plan-id.txt
+      BUILD_NAME="CI-CloseBuild-$STAMP"
+      RESULT2=$(npx tsx cicd/tests/src/mcp-client.ts create_build \
+        "{\"data\":{\"plan_id\":\"$PLAN_ID\",\"name\":\"$BUILD_NAME\",\"notes\":\"Build for TC-TOOL-015\"}}" \
+        2>/dev/null)
+      TEXT2=$(echo "$RESULT2" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      BUILD_ID=$(echo "$TEXT2" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
+      echo "BUILD_ID=$BUILD_ID"
+      echo "$BUILD_ID" > /tmp/tc-tool-015-build-id.txt
+    timeout: 20000
+    expectPatterns:
+      - "PLAN_ID="
+      - "BUILD_ID="
+
+  - name: "Close the build"
+    command: |
+      BUILD_ID=$(cat /tmp/tc-tool-015-build-id.txt)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts close_build \
+        "{\"build_id\":\"$BUILD_ID\"}" \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "CLOSE_BUILD_OK" || echo "CLOSE_BUILD_FAILED"
+    timeout: 15000
+    expectPatterns:
+      - "CLOSE_BUILD_OK"
+
+  - name: "Delete the temporary plan"
+    command: |
+      PLAN_ID=$(cat /tmp/tc-tool-015-plan-id.txt)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_test_plan \
+        "{\"plan_id\":\"$PLAN_ID\"}" \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "DELETE_PLAN_OK" || echo "DELETE_PLAN_FAILED"
+    timeout: 15000
+    expectPatterns:
+      - "DELETE_PLAN_OK"
+
+  - name: "Verify plan no longer appears in listing"
+    command: |
+      PLAN_ID=$(cat /tmp/tc-tool-015-plan-id.txt)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_plans \
+        '{"project_id":"162"}' \
+        2>/dev/null)
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | python3 -c "
+      import sys, json
+      plans = json.load(sys.stdin)
+      ids = [p.get('id','') for p in plans] if isinstance(plans, list) else list(plans.keys())
+      if '$PLAN_ID' not in ids:
+          print('VERIFY_DELETED_OK')
+      else:
+          print('VERIFY_DELETED_FAILED')
+      "
+    timeout: 15000
+    expectPatterns:
+      - "VERIFY_DELETED_OK"
+
+criteria: |
+  Verify that:
+  - close_build closes a build (prevents further executions)
+  - delete_test_plan removes a test plan
+  - The deleted plan no longer appears in list_test_plans
+
+goal: "Test close_build and delete_test_plan MCP tools with full cleanup verification"
