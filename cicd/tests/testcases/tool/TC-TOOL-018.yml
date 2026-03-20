@@ -1,0 +1,32 @@
+id: TC-TOOL-018
+name: "MCP Tool: get_requirement"
+suite: tool
+priority: 18
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "Get non-existent requirement returns expected error"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts get_requirement \
+        '{"requirement_id":"99999","project_id":"162"}' \
+        2>/dev/null)
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      if [ "$IS_ERR" = "True" ] || [ "$IS_ERR" = "true" ]; then
+        echo "EXPECTED_ERROR_RETURNED"
+        echo "$TEXT" | grep -q "does not exist" && echo "EXPECTED_ERROR_MSG_OK"
+      else
+        echo "NO_ERROR_RETURNED"
+      fi
+    timeout: 15000
+    expectPatterns:
+      - "EXPECTED_ERROR_RETURNED"
+      - "EXPECTED_ERROR_MSG_OK"
+
+criteria: |
+  Verify that:
+  - get_requirement with a non-existent ID returns isError=true
+  - The response message indicates the requirement does not exist
+
+goal: "Test the get_requirement MCP tool returns proper error for missing requirement"

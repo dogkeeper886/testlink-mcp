@@ -1,0 +1,35 @@
+id: TC-TOOL-017
+name: "MCP Tool: list_requirements"
+suite: tool
+priority: 17
+timeout: 30000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List requirements for testlink-mcp project"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_requirements \
+        '{"project_id":"162"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "LIST_REQ_OK" || echo "LIST_REQ_FAILED"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | python3 -c "
+      import sys, json
+      data = json.load(sys.stdin)
+      if isinstance(data, list):
+          print(f'REQ_COUNT={len(data)}')
+      else:
+          print('REQ_RESPONSE_VALID')
+      "
+    timeout: 15000
+    expectPatterns:
+      - "LIST_REQ_OK"
+
+criteria: |
+  Verify that:
+  - list_requirements returns a valid response for project 162
+  - No error is returned (empty list is acceptable)
+
+goal: "Test the list_requirements MCP tool against real TestLink"
