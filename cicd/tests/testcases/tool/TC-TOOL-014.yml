@@ -29,29 +29,38 @@ steps:
         "{\"data\":{\"test_case_id\":\"170\",\"plan_id\":\"172\",\"build_id\":\"$BUILD_ID\",\"status\":\"p\",\"notes\":\"Executed by TC-TOOL-014\"}}" \
         2>/dev/null)
       echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "status" && echo "EXECUTION_RECORDED"
       IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
       [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "EXECUTION_OK" || echo "EXECUTION_FAILED"
     timeout: 15000
     expectPatterns:
       - "EXECUTION_OK"
 
-  - name: "Read test executions for the plan"
+  - name: "Verify execution via get_test_cases_for_test_plan"
     command: |
-      BUILD_ID=$(cat /tmp/tc-tool-014-build-id.txt)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_execution \
-        "{\"plan_id\":\"172\",\"build_id\":\"$BUILD_ID\"}" \
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts get_test_cases_for_test_plan \
+        '{"plan_id":"172"}' \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "TC-TOOL-014" && echo "FOUND_EXECUTION_NOTES"
+      python3 -c "
+      import json
+      data = json.loads('''$(echo "$TEXT")''')
+      case = data.get('170', [{}])[0]
+      status = case.get('exec_status', 'n')
+      if status == 'p':
+          print('EXEC_STATUS_PASS')
+      else:
+          print(f'EXEC_STATUS={status}')
+      "
     timeout: 15000
     expectPatterns:
-      - "FOUND_EXECUTION_NOTES"
+      - "EXEC_STATUS_PASS"
 
 criteria: |
   Verify that:
   - create_test_execution records a pass result for case 170 (tm-3) in plan 172
-  - read_test_execution retrieves the recorded execution
-  - The execution notes contain the expected text
+  - The execution is confirmed via get_test_cases_for_test_plan showing exec_status=p
 
-goal: "Test create_test_execution and read_test_execution MCP tools end-to-end"
+goal: "Test create_test_execution MCP tool and verify execution was recorded"

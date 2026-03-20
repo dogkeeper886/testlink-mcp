@@ -12,7 +12,7 @@ steps:
       PLAN_NAME="CI-Plan-$STAMP"
       echo "$PLAN_NAME" > /tmp/tc-tool-010-name.txt
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan \
-        "{\"data\":{\"project_id\":\"162\",\"name\":\"$PLAN_NAME\",\"notes\":\"Created by TC-TOOL-010\"}}" \
+        "{\"data\":{\"project_id\":\"testlink-mcp\",\"name\":\"$PLAN_NAME\",\"notes\":\"Created by TC-TOOL-010\"}}" \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")

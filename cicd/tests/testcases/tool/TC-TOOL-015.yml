@@ -11,7 +11,7 @@ steps:
       STAMP=$(date +%s)
       PLAN_NAME="CI-Cleanup-$STAMP"
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan \
-        "{\"data\":{\"project_id\":\"162\",\"name\":\"$PLAN_NAME\",\"notes\":\"Temp plan for TC-TOOL-015\"}}" \
+        "{\"data\":{\"project_id\":\"testlink-mcp\",\"name\":\"$PLAN_NAME\",\"notes\":\"Temp plan for TC-TOOL-015\"}}" \
         2>/dev/null)
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
       PLAN_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
