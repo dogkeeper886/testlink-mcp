@@ -24,9 +24,9 @@ steps:
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_projects '{}' \
         2>/dev/null)
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      python3 -c "
-      import json
-      projects = json.loads('''$TEXT''')
+      echo "$TEXT" | python3 -c "
+      import sys, json
+      projects = json.load(sys.stdin)
       proj = [p for p in projects if p['name'] == 'testlink-mcp'][0]
       fields = ['id','name','prefix','active','is_public']
       missing = [f for f in fields if f not in proj]
@@ -35,7 +35,7 @@ steps:
       elif proj['id'] == '162' and proj['prefix'] == 'tm':
           print('STRUCTURE_OK')
       else:
-          print(f'UNEXPECTED_VALUES id={proj[\"id\"]} prefix={proj[\"prefix\"]}')
+          print(f'UNEXPECTED_VALUES')
       "
     timeout: 15000
     expectPatterns:
