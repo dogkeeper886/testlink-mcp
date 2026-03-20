@@ -8,12 +8,15 @@ dependencies: [TC-TOOL-000]
 steps:
   - name: "Create a top-level suite"
     command: |
+      STAMP=$(date +%s)
+      SUITE_NAME="CI-Suite-$STAMP"
+      echo "$SUITE_NAME" > /tmp/tc-tool-006-name.txt
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite \
-        '{"project_id":"162","suite_name":"CI-Created-Suite","details":"Created by TC-TOOL-006"}' \
+        "{\"project_id\":\"162\",\"suite_name\":\"$SUITE_NAME\",\"details\":\"Created by TC-TOOL-006\"}" \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      SUITE_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))")
+      SUITE_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
       echo "CREATED_SUITE_ID=$SUITE_ID"
       echo "$SUITE_ID" > /tmp/tc-tool-006-suite-id.txt
     timeout: 15000
@@ -23,12 +26,14 @@ steps:
   - name: "Create a nested child suite"
     command: |
       PARENT_ID=$(cat /tmp/tc-tool-006-suite-id.txt)
+      STAMP=$(date +%s)
+      CHILD_NAME="CI-Child-$STAMP"
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite \
-        "{\"project_id\":\"162\",\"suite_name\":\"CI-Child-Suite\",\"details\":\"Child of CI-Created-Suite\",\"parent_id\":\"$PARENT_ID\"}" \
+        "{\"project_id\":\"162\",\"suite_name\":\"$CHILD_NAME\",\"details\":\"Child suite\",\"parent_id\":\"$PARENT_ID\"}" \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      CHILD_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))")
+      CHILD_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
       echo "CREATED_CHILD_ID=$CHILD_ID"
     timeout: 15000
     expectPatterns:
@@ -36,12 +41,13 @@ steps:
 
   - name: "Verify created suite appears in listing"
     command: |
+      SUITE_NAME=$(cat /tmp/tc-tool-006-name.txt)
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites \
         '{"project_id":"162"}' \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "CI-Created-Suite" && echo "VERIFY_SUITE_OK"
+      echo "$TEXT" | grep -q "$SUITE_NAME" && echo "VERIFY_SUITE_OK"
     timeout: 15000
     expectPatterns:
       - "VERIFY_SUITE_OK"
