@@ -1,0 +1,58 @@
+id: TC-TOOL-013
+name: "MCP Tool: list_builds + create_build"
+suite: tool
+priority: 13
+timeout: 45000
+dependencies: [TC-TOOL-000]
+
+steps:
+  - name: "List builds for CI Test Plan"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_builds \
+        '{"plan_id":"172"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "CI Build 1" && echo "FOUND_CI_BUILD"
+    timeout: 15000
+    expectPatterns:
+      - "FOUND_CI_BUILD"
+
+  - name: "Create a new build"
+    command: |
+      STAMP=$(date +%s)
+      BUILD_NAME="CI-Build-$STAMP"
+      echo "$BUILD_NAME" > /tmp/tc-tool-013-name.txt
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_build \
+        "{\"data\":{\"plan_id\":\"172\",\"name\":\"$BUILD_NAME\",\"notes\":\"Created by TC-TOOL-013\"}}" \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      BUILD_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
+      echo "CREATED_BUILD_ID=$BUILD_ID"
+      echo "$BUILD_ID" > /tmp/tc-tool-013-build-id.txt
+    timeout: 15000
+    expectPatterns:
+      - "CREATED_BUILD_ID="
+
+  - name: "Verify build appears in listing"
+    command: |
+      BUILD_NAME=$(cat /tmp/tc-tool-013-name.txt)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_builds \
+        '{"plan_id":"172"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "$BUILD_NAME" && echo "VERIFY_BUILD_OK"
+    timeout: 15000
+    expectPatterns:
+      - "VERIFY_BUILD_OK"
+
+criteria: |
+  Verify that:
+  - list_builds returns builds for CI Test Plan (172)
+  - Known build "CI Build 1" is present
+  - create_build creates a new build in the plan
+  - The created build appears in list_builds output
+
+goal: "Test list_builds and create_build MCP tools against real TestLink"
