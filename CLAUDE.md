@@ -196,9 +196,10 @@ When reviewing code, ask:
 |---------|---------|-------|
 | `/gh-init "<feature>"` | Create milestone + dev labels | Plan |
 | `/gh-track "<task>"` | Create issue under milestone with task checklist | Plan |
+| `/tl-define <issue#>` | Create test cases in TestLink for issue | Define |
 | `/gh-status "<feature>"` | Show open issues and pending tasks | Any |
 | `/gh-implement <issue#>` | Create branch, implement tasks, update checkboxes | Build |
-| `/gh-test <issue#>` | Build + run tests, report results to issue | Verify |
+| `/gh-test <issue#>` | Build + run tests, report results to issue + TestLink | Verify |
 | `/gh-pr <issue#>` | Push branch, create PR with traceability | Deliver |
 | `/gh-merge <pr#>` | Merge PR, delete branch, close milestone if done | Deliver |
 | `/gh-close <issue#>` | Close issue with summary comment | Deliver |
@@ -217,8 +218,14 @@ User Request
   │   Trigger: User approves the plan
   │   Output: Milestone, user story issue, task issues with checklists
   │
+  ├─► DEFINE: /tl-define <issue#>
+  │   Trigger: Issue tracked, involves testable behavior
+  │   Output: Test cases created in TestLink, IDs posted to issue
+  │   Rule: TestLink is the single source of truth for test design
+  │   Rule: YAML test files reference testlink_id during implementation
+  │
   ├─► IMPLEMENT: /gh-implement <issue#>
-  │   Trigger: Task issues exist and are open
+  │   Trigger: TestLink test cases defined (or issue has no testable behavior)
   │   Output: Branch with commits, checkboxes updated in real-time
   │   Rule: Commit messages include "refs #N"
   │   Rule: Check off each task checkbox as it completes
@@ -244,23 +251,27 @@ User Request
 The agent advances automatically through the lifecycle EXCEPT before merge:
 
 1. After user approves plan → run `/gh-init` then `/gh-track` for each task
-2. After tracking complete → start `/gh-implement` on first open issue
-3. After all checkboxes checked → run `/gh-test`
-4. After tests pass → run `/gh-pr`
-5. After PR created → **STOP and wait for user** (merge is a human decision)
-6. After user says merge → run `/gh-merge`
-7. After merge, if more issues open → `/gh-implement` next issue
-8. After merge, if no issues open → close milestone, report done
-9. Implement issues sequentially (one branch per issue)
+2. After tracking complete, if issue involves testable behavior → run `/tl-define`
+3. After test cases defined (or no testable behavior) → start `/gh-implement` on first open issue
+4. After all checkboxes checked → run `/gh-test`
+5. After tests pass → run `/gh-pr`
+6. After PR created → **STOP and wait for user** (merge is a human decision)
+7. After user says merge → run `/gh-merge`
+8. After merge, if more issues open → `/gh-implement` next issue
+9. After merge, if no issues open → close milestone, report done
+10. Implement issues sequentially (one branch per issue)
 
 ### Traceability
 
 ```
 User Story (milestone + story issue with acceptance criteria)
   └─► Task Issue #N (checklist in body)
+       ├─► TestLink: test cases created via /tl-define, IDs posted to issue
        ├─► Branch: type/desc-#N
        ├─► Commits: "refs #N"
        ├─► Files: listed in issue "Files" section (updated during implementation)
+       ├─► YAML tests: testlink_id field links to TestLink cases
+       ├─► Executions: /gh-test reports results back to TestLink
        └─► PR: "Fixes #N" → auto-closes issue on merge
 ```
 
