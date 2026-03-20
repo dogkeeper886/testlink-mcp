@@ -33,6 +33,18 @@ Reports results back to the GitHub issue as a comment.
         │   - If no tests exist: note "No tests found" and continue
         │   - If tests fail: report failures and STOP
         │
+        ├─► Step 3.5: Report to TestLink
+        │   - Read JSON results from cicd/results/ (summary.json + per-test files)
+        │   - For each test report with a testlink_id field:
+        │     a. Create a build via MCP create_build (once per run, name = branch + timestamp)
+        │     b. Record execution via MCP create_test_execution:
+        │        - testcaseid: the testlink_id from the report
+        │        - status: "p" if pass=true, "f" if pass=false
+        │        - notes: the reason field from the report
+        │        - buildid: from step (a)
+        │   - If no tests have testlink_id, skip this step silently
+        │   - Track execution IDs for the issue comment
+        │
         ├─► Step 4: Report to Issue
         │   - Add comment to issue with results:
         │     gh issue comment <number> --body "<results>"
@@ -53,6 +65,14 @@ Reports results back to the GitHub issue as a comment.
     **Branch**: `feat/streamable-http-#17`
     **Build**: ✅ Pass
     **Tests**: ✅ Pass (or ⚠️ No tests found)
+
+    ### TestLink Executions
+    | TestLink ID | Test | Status |
+    |-------------|------|--------|
+    | 201 | Create test suite | ✅ Pass |
+    | 202 | Duplicate suite name | ❌ Fail |
+
+    _(Only shown if any tests have `testlink_id`)_
 
     ### Files Changed
     - src/index.ts (modified)

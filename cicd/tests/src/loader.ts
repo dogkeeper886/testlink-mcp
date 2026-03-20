@@ -214,6 +214,8 @@ export class TestLoader {
       dependencies: Array.isArray(raw.dependencies) ? raw.dependencies : [],
       steps,
       criteria: typeof raw.criteria === 'string' ? raw.criteria : '',
+      goal: typeof raw.goal === 'string' ? raw.goal : undefined,
+      testlink_id: typeof raw.testlink_id === 'number' ? raw.testlink_id : undefined,
     };
   }
 }

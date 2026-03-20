@@ -67,6 +67,7 @@ export class JsonReporter {
         logFile: result.logFile,
         simpleJudge: simple,
         llmJudge: llm,
+        testlink_id: result.testCase.testlink_id,
       };
     });
 

@@ -44,6 +44,8 @@ export interface TestCase {
   criteria: string;
   /** Short goal statement for LLM judge context (optional) */
   goal?: string;
+  /** TestLink test case ID for traceability */
+  testlink_id?: number;
 }
 
 // ============================================
@@ -163,6 +165,8 @@ export interface TestReport {
   simpleJudge: Judgment;
   /** LLM judge verdict */
   llmJudge: Judgment;
+  /** TestLink test case ID for traceability */
+  testlink_id?: number;
 }
 
 /**
