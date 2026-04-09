@@ -1,9 +1,10 @@
-id: TC-TOOL-005
+id: TC-S3-001
+testlink_id: 23
 name: "MCP Tool: list_test_suites"
-suite: tool
+suite: s3-test-suite
 priority: 5
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "List suites for testlink-mcp project"
@@ -13,16 +14,16 @@ steps:
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "CRUD Tests" && echo "FOUND_CRUD_SUITE"
-      echo "$TEXT" | grep -q "Plan Tests" && echo "FOUND_PLAN_SUITE"
+      echo "$TEXT" | grep -q "Test Data" && echo "FOUND_TEST_DATA_SUITE"
+      echo "$TEXT" | grep -q "S1-Build-Deploy" && echo "FOUND_S1_SUITE"
     timeout: 15000
     expectPatterns:
-      - "FOUND_CRUD_SUITE"
-      - "FOUND_PLAN_SUITE"
+      - "FOUND_TEST_DATA_SUITE"
+      - "FOUND_S1_SUITE"
 
 criteria: |
   Verify that:
   - list_test_suites returns suites for project 162 (testlink-mcp)
-  - Known suites "CRUD Tests" (163) and "Plan Tests" (164) are present
+  - Known suites "Test Data" (271) and "S1-Build-Deploy" (279) are present
 
 goal: "Test the list_test_suites MCP tool against real TestLink"

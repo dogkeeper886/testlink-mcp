@@ -6,48 +6,34 @@ As a QA engineer,
 I want to organize test cases into suites and manage suite hierarchy,
 So that my test cases are structured by feature area or test type.
 
-## Description
-
-Test suite operations including listing suites for a project, listing test cases within a suite, creating new suites (with optional nesting via parent_id), and updating suite properties.
-
 ## Acceptance Criteria
 
-- [x] `list_test_suites` - Get first-level suites for a project
-- [x] `list_test_cases_in_suite` - Get all test cases in a suite (deep, full details)
-- [x] `create_test_suite` - Create suite with optional parent for nesting
-- [x] `update_test_suite` - Update name and details
-- [x] HTML formatting support for suite details
+- [x] `list_test_suites` returns first-level suites for a project
+- [x] `list_test_cases_in_suite` returns all cases (deep, full details)
+- [x] `create_test_suite` with optional parent for nesting
+- [x] `update_test_suite` name and details
+
+## Test Cases
+
+| Test Case | Script | Objective | Status |
+|-----------|--------|-----------|--------|
+| TC-S3-001 | `cicd/tests/testcases/s3-test-suite/TC-S3-001.yml` | list_test_suites returns known suites | Active |
+| TC-S3-002 | `cicd/tests/testcases/s3-test-suite/TC-S3-002.yml` | list_test_cases_in_suite populated & empty | Active |
+| TC-S3-003 | `cicd/tests/testcases/s3-test-suite/TC-S3-003.yml` | update_test_suite modifies, verifies, restores | Active |
+| TC-S3-004 | `cicd/tests/testcases/s3-test-suite/TC-S3-004.yml.disabled` | create_test_suite top-level & nested | Disabled (debris) |
 
 ## Technical Notes
 
-- Affected files: `src/index.ts` (lines 192-253, 520-598, 851-877)
+- Affected files: `src/index.ts` (lines 192-253, 520-598)
 - Tools: `list_test_suites`, `list_test_cases_in_suite`, `create_test_suite`, `update_test_suite`
-- API: `getFirstLevelTestSuitesForTestProject` (only returns first level), `getTestCasesForTestSuite` (deep=true)
-- Missing: `delete_test_suite` — not implemented (PRD lists as P1)
+- Seed data: suites 163 (CRUD Tests), 164 (Plan Tests)
 
 ## Traceability
 
-- PRD: Test Suite Management (4 tools planned, 4 implemented — but delete not in code, update added instead)
-- Release: v1.0.0 (list), v1.2.0 (create, update, HTML support)
-- GitHub: PRs #37 (integration tests)
-- TestLink: project 162 has 8 suites (2 real + 6 CI leftovers)
-- Tests: TC-TOOL-006 (list suites), TC-TOOL-007 (list cases in suite), TC-TOOL-008 (create suite), TC-TOOL-009 (update suite)
-
-## Test Coverage
-
-| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
-|---------|------|-------------|------|------------|
-| TC-TOOL-005 | list_test_suites | list_test_suites | Yes | N/A |
-| TC-TOOL-006 | create_test_suite | create_test_suite, list_test_suites | Yes | No (debris) |
-| TC-TOOL-007 | list_test_cases_in_suite | list_test_cases_in_suite | Yes | N/A |
-| TC-TOOL-008 | update_test_suite | update_test_suite, list_test_suites | Yes | Yes (restores) |
-
-Gaps:
-- TC-TOOL-006 leaves 2 orphaned suites per CI run — blocked by testlink-code#1
-- No `delete_test_suite` tool exists (not in PRD either)
+- TestLink suite: TBD
+- GitHub: PR #37 (integration tests)
 
 ## Status
 
-- Created: 2026-04-08
+- Created: 2026-04-09
 - Status: COMPLETE
-- Tasks: none open

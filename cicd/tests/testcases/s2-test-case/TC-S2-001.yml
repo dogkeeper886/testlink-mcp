@@ -1,15 +1,16 @@
-id: TC-TOOL-002
+id: TC-S2-001
+testlink_id: 20
 name: "MCP Tool: read_test_case"
-suite: tool
+suite: s2-test-case
 priority: 2
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Read test case by numeric ID"
     command: |
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case \
-        '{"test_case_id":"166"}' \
+        '{"test_case_id":"273"}' \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
@@ -22,7 +23,7 @@ steps:
   - name: "Read test case by external ID"
     command: |
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case \
-        '{"test_case_id":"tm-1"}' \
+        '{"test_case_id":"tm-14"}' \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
@@ -34,8 +35,8 @@ steps:
 
 criteria: |
   Verify that:
-  - read_test_case retrieves test case tm-1 (id:166) by numeric ID
-  - read_test_case retrieves the same test case by external ID format (tm-1)
+  - read_test_case retrieves test case tm-14 (id:273) by numeric ID
+  - read_test_case retrieves the same test case by external ID format (tm-14)
   - Both formats return matching test case data
 
 goal: "Test the read_test_case MCP tool with both ID formats"

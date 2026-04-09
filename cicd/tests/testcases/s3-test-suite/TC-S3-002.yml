@@ -1,15 +1,16 @@
-id: TC-TOOL-007
+id: TC-S3-002
+testlink_id: 24
 name: "MCP Tool: list_test_cases_in_suite"
-suite: tool
+suite: s3-test-suite
 priority: 7
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "List test cases in CRUD Tests suite"
     command: |
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
-        '{"suite_id":"163"}' \
+        '{"suite_id":"271"}' \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
@@ -23,7 +24,7 @@ steps:
   - name: "List test cases in empty suite returns valid response"
     command: |
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
-        '{"suite_id":"164"}' \
+        '{"suite_id":"272"}' \
         2>/dev/null)
       echo "$RESULT"
       IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
@@ -34,7 +35,7 @@ steps:
 
 criteria: |
   Verify that:
-  - list_test_cases_in_suite returns known cases from CRUD Tests suite (163)
-  - Listing cases in Plan Tests suite (164) returns a valid response
+  - list_test_cases_in_suite returns known cases from CRUD Tests suite (271)
+  - Listing cases in Plan Tests suite (272) returns a valid response
 
 goal: "Test the list_test_cases_in_suite MCP tool against real TestLink"

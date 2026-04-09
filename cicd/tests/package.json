@@ -7,10 +7,13 @@
   "scripts": {
     "build": "tsc",
     "test": "tsx src/cli.ts run",
-    "test:build": "tsx src/cli.ts run --suite build",
-    "test:integration": "tsx src/cli.ts run --suite integration",
-    "test:e2e": "tsx src/cli.ts run --suite e2e",
-    "test:tool": "tsx src/cli.ts run --suite tool",
+    "test:s1": "tsx src/cli.ts run --suite s1-build-deploy",
+    "test:s2": "tsx src/cli.ts run --suite s2-test-case",
+    "test:s3": "tsx src/cli.ts run --suite s3-test-suite",
+    "test:s4": "tsx src/cli.ts run --suite s4-test-plan",
+    "test:s5": "tsx src/cli.ts run --suite s5-build-mgmt",
+    "test:s6": "tsx src/cli.ts run --suite s6-execution",
+    "test:s7": "tsx src/cli.ts run --suite s7-requirements",
     "list": "tsx src/cli.ts list",
     "dev": "tsx src/cli.ts"
   },

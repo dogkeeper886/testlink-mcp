@@ -18,38 +18,60 @@ on:
         type: string
 
 jobs:
-  build:
-    name: Build Tests
+  s1-build-deploy:
+    name: "S1: Build & Deploy"
     uses: ./.github/workflows/test-suite.yml
     with:
-      suite: build
+      suite: s1-build-deploy
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
 
-  integration:
-    name: Integration Tests
-    needs: build
+  s2-test-case:
+    name: "S2: Test Case Management"
+    needs: s1-build-deploy
     uses: ./.github/workflows/test-suite.yml
     with:
-      suite: integration
+      suite: s2-test-case
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
 
-  e2e:
-    name: E2E Tests
-    needs: build
+  s3-test-suite:
+    name: "S3: Test Suite Management"
+    needs: s1-build-deploy
     uses: ./.github/workflows/test-suite.yml
     with:
-      suite: e2e
+      suite: s3-test-suite
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
 
-  tool:
-    name: Tool Integration Tests
-    needs: build
+  s4-test-plan:
+    name: "S4: Test Plan Management"
+    needs: s1-build-deploy
     uses: ./.github/workflows/test-suite.yml
     with:
-      suite: tool
+      suite: s4-test-plan
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
+
+  s5-build-mgmt:
+    name: "S5: Build Management"
+    needs: s1-build-deploy
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: s5-build-mgmt
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
+
+  s7-requirements:
+    name: "S7: Requirement Management"
+    needs: s1-build-deploy
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      suite: s7-requirements
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
     secrets: inherit

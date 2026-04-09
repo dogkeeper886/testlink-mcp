@@ -1,9 +1,10 @@
-id: TC-TOOL-011
+id: TC-S4-001
+testlink_id: 27
 name: "MCP Tool: add_test_case_to_test_plan"
-suite: tool
+suite: s4-test-plan
 priority: 11
 timeout: 45000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Create a temporary test plan"
@@ -22,11 +23,11 @@ steps:
     expectPatterns:
       - "TEMP_PLAN_ID="
 
-  - name: "Add test case tm-1 to the plan"
+  - name: "Add test case tm-14 to the plan"
     command: |
       PLAN_ID=$(cat /tmp/tc-tool-011-plan-id.txt)
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan \
-        "{\"data\":{\"testcaseid\":\"tm-1\",\"testplanid\":\"$PLAN_ID\",\"testprojectid\":\"162\"}}" \
+        "{\"data\":{\"testcaseid\":\"tm-14\",\"testplanid\":\"$PLAN_ID\",\"testprojectid\":\"162\"}}" \
         2>/dev/null)
       echo "$RESULT"
       IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
@@ -63,7 +64,7 @@ steps:
 
 criteria: |
   Verify that:
-  - add_test_case_to_test_plan assigns test case tm-1 to a plan
+  - add_test_case_to_test_plan assigns test case tm-14 to a plan
   - get_test_cases_for_test_plan confirms the case is in the plan
   - Cleanup: temporary plan is deleted after verification
 

@@ -1,9 +1,10 @@
-id: TC-TOOL-017
+id: TC-S7-001
+testlink_id: 31
 name: "MCP Tool: list_requirements"
-suite: tool
+suite: s7-requirements
 priority: 17
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "List requirements for testlink-mcp project"
