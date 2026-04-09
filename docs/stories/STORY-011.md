@@ -29,9 +29,17 @@ Continuous delivery pipeline that builds and pushes Docker images to Docker Hub 
 - GitHub: Issue #11
 - CI: `docker-publish.yml`, `release.yml`
 
+## Test Coverage
+
+| Test ID | Name | Type | E2E? |
+|---------|------|------|------|
+| TC-BUILD-002 | TypeScript Strict Type Check | Build gate | No |
+| TC-BUILD-003 | Build Output Verification | Build gate | No |
+
+These gate the docker-publish.yml workflow.
+
 ## Status
 
 - Created: 2026-04-08
 - Status: PARTIAL — workflow exists, automated version tagging not confirmed
 - Tasks: Issue #11
-- Tests: TC-BUILD-002 (Docker build), TC-BUILD-003 (container startup)

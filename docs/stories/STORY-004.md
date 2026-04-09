@@ -34,9 +34,20 @@ Test plan lifecycle: list plans, create plans, delete plans, view assigned test 
 - TestLink: "CI Test Plan" (ID 172) in testlink-mcp project
 - Tests: TC-TOOL-010 (list plans), TC-TOOL-011 (create plan), TC-TOOL-012 (delete plan), TC-TOOL-013 (get cases for plan), TC-TOOL-014 (add case to plan)
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-009 | list_test_plans | list_test_plans | Yes | N/A |
+| TC-TOOL-010 | create_test_plan | create_test_plan, delete_test_plan, list_test_plans | Yes | Yes |
+| TC-TOOL-011 | add_test_case_to_test_plan | add_test_case_to_test_plan, create_test_plan, get_test_cases_for_test_plan, delete_test_plan | Yes | Yes |
+| TC-TOOL-012 | get_test_cases_for_test_plan | get_test_cases_for_test_plan | Yes | N/A |
+
+Gaps:
+- TC-TOOL-011 only tests basic add; no coverage of overwrite, urgency, platform_id params
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: 5 tool tests + integration tests

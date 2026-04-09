@@ -35,9 +35,20 @@ The foundational server that bridges AI agents (Claude Code, Cursor) with TestLi
 - Code: `src/index.ts`
 - Docker: `Dockerfile` (multi-stage Alpine build)
 
+## Test Coverage
+
+| Test ID | Name | Type | E2E? |
+|---------|------|------|------|
+| TC-BUILD-001 | Project Build Verification | Build gate | No |
+| TC-BUILD-002 | TypeScript Strict Type Check | Build gate | No |
+| TC-BUILD-003 | Build Output Verification | Build gate | No |
+| TC-E2E-001 | MCP Server Startup Validation | Module check | No |
+| TC-TOOL-000 | TestLink API Connection Smoke Test | Smoke | Partial |
+
+Coverage: FULL — all foundation aspects verified
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: TC-BUILD-001 (TypeScript compilation), TC-BUILD-002 (Docker build), TC-BUILD-003 (container startup)

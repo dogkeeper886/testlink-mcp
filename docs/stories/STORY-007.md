@@ -29,9 +29,19 @@ Read-only access to TestLink requirements. Create, update, and delete operations
 - GitHub: PRs #39 (integration tests)
 - Tests: part of integration test suite
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-017 | list_requirements | list_requirements | Yes | N/A |
+| TC-TOOL-018 | get_requirement | get_requirement (error case only) | Yes | N/A |
+
+Gaps:
+- TC-TOOL-017 is a smoke test — no actual requirement data to verify against
+- TC-TOOL-018 only tests error case (non-existent ID 99999); no success case test
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE (read-only by design — API limitation)
 - Tasks: none open
-- Tests: integration tests

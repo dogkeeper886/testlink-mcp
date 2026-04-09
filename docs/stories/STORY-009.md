@@ -36,9 +36,25 @@ Custom YAML-based test framework with 23 test cases covering tool operations, bu
 - Tests: 23 test cases total across 4 categories
 - CI: 5 GitHub Actions workflows
 
+## Test Coverage
+
+All 23 test scripts ARE this story's deliverables:
+
+| Suite | Count | Type | E2E? |
+|-------|-------|------|------|
+| build | 3 | TC-BUILD-001/002/003 | No — compile gates |
+| integration | 1 | TC-INTEGRATION-001 | No — Docker build |
+| e2e | 1 | TC-E2E-001 | No — startup check |
+| tool | 18 | TC-TOOL-000 through 018 | Yes — live TestLink |
+
+Coverage gaps in tool suite:
+- 3 tools untested: delete_test_case, read_test_execution, delete_build
+- 4 tests leave debris: TC-TOOL-001, 006, 013, 014
+- TC-TOOL-004 missing (gap in numbering)
+- Tracked: dogkeeper886/testlink-mcp#40
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
-- Tasks: CI cleanup of orphaned TestLink data (not tracked)
-- Tests: self-referential — this IS the test infrastructure
+- Tasks: dogkeeper886/testlink-mcp#40 (CI debris cleanup, blocked by testlink-code#1)

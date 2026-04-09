@@ -32,9 +32,16 @@ Multi-stage Docker build with Alpine Linux for minimal image size. Runs as non-r
 - Tests: TC-BUILD-002 (Docker build), TC-BUILD-003 (container startup)
 - CI: `.github/workflows/docker-publish.yml`
 
+## Test Coverage
+
+| Test ID | Name | Type | E2E? |
+|---------|------|------|------|
+| TC-INTEGRATION-001 | Docker Image Build | Build gate | No (builds image, verifies non-root user, cleans up) |
+
+Coverage: FULL for build verification
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: 2 build tests

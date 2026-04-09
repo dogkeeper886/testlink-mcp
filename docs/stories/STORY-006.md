@@ -31,9 +31,20 @@ Record test execution results (pass/fail/blocked) against a test plan and build,
 - Release: v1.2.0
 - Tests: TC-TOOL-017 (read execution), TC-TOOL-018 (create execution)
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-014 | create_test_execution + read_test_execution | create_test_execution, get_test_cases_for_test_plan, create_build | Yes | No (debris) |
+| — | read_test_execution | **NOT COVERED** (indirect only via get_test_cases_for_test_plan) | — | — |
+
+Gaps:
+- `read_test_execution` tool is never directly invoked in any test
+- TC-TOOL-014 only tests pass (p) status; no coverage for fail (f) or blocked (b)
+- TC-TOOL-014 leaves build + execution debris
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: 2 tool tests

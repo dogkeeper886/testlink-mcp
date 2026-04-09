@@ -30,9 +30,21 @@ Build lifecycle within test plans: list builds, create builds with release dates
 - Release: v1.2.0
 - Tests: TC-TOOL-015 (list builds), TC-TOOL-016 (create build)
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-013 | list_builds + create_build | list_builds, create_build | Yes | No (debris) |
+| TC-TOOL-015 | close_build + delete_test_plan | close_build, create_build, create_test_plan, delete_test_plan | Yes | Yes |
+| — | delete_build | **NOT COVERED** | — | — |
+
+Gaps:
+- `delete_build` has no test
+- TC-TOOL-013 leaves orphaned builds per CI run
+- TC-TOOL-015 tests close_build but doesn't verify closed state
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: 2 tool tests

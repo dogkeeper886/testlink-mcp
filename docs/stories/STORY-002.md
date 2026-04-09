@@ -34,9 +34,22 @@ Full CRUD operations for TestLink test cases. Supports both numeric IDs (123) an
 - TestLink: CRUD Tests suite (ID 163), test cases tm-1 (read), tm-2 (update)
 - Tests: TC-TOOL-001 (create), TC-TOOL-002 (read), TC-TOOL-003 (update), TC-TOOL-005 (delete)
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-001 | create_test_case | create_test_case, read_test_case | Yes | No (debris) |
+| TC-TOOL-002 | read_test_case | read_test_case | Yes | N/A |
+| TC-TOOL-003 | update_test_case | update_test_case, read_test_case | Yes | Yes (restores) |
+| — | delete_test_case | **NOT COVERED** | — | — |
+
+Gaps:
+- `delete_test_case` has no test — blocked by testlink-code#1 (no delete API)
+- TC-TOOL-001 leaves debris (creates case, never deletes)
+- TC-TOOL-003 only tests name/summary/importance, not preconditions/steps
+
 ## Status
 
 - Created: 2026-04-08
 - Status: COMPLETE
 - Tasks: none open
-- Tests: 4 tool tests + integration tests

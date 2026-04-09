@@ -36,9 +36,16 @@ Add HTTP-based transport alongside existing stdio. The MCP spec (2025-03-26) def
 - PRD: not yet reflected (needs update)
 - TestLink: no test cases defined yet
 
+## Test Coverage
+
+No test scripts exist yet. When implemented, will need:
+- TC-TOOL-019: Streamable HTTP transport connection test
+- TC-TOOL-020: Legacy SSE transport connection test
+- TC-TOOL-021: Tool invocation over HTTP
+- TC-E2E-002: Dify integration smoke test
+
 ## Status
 
 - Created: 2026-04-08
 - Status: NOT STARTED
 - Tasks: Issues #17, #18, #19, #20
-- Tests: none defined

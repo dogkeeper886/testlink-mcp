@@ -33,9 +33,21 @@ Test suite operations including listing suites for a project, listing test cases
 - TestLink: project 162 has 8 suites (2 real + 6 CI leftovers)
 - Tests: TC-TOOL-006 (list suites), TC-TOOL-007 (list cases in suite), TC-TOOL-008 (create suite), TC-TOOL-009 (update suite)
 
+## Test Coverage
+
+| Test ID | Name | Tool Tested | E2E? | Cleans Up? |
+|---------|------|-------------|------|------------|
+| TC-TOOL-005 | list_test_suites | list_test_suites | Yes | N/A |
+| TC-TOOL-006 | create_test_suite | create_test_suite, list_test_suites | Yes | No (debris) |
+| TC-TOOL-007 | list_test_cases_in_suite | list_test_cases_in_suite | Yes | N/A |
+| TC-TOOL-008 | update_test_suite | update_test_suite, list_test_suites | Yes | Yes (restores) |
+
+Gaps:
+- TC-TOOL-006 leaves 2 orphaned suites per CI run — blocked by testlink-code#1
+- No `delete_test_suite` tool exists (not in PRD either)
+
 ## Status
 
 - Created: 2026-04-08
-- Status: COMPLETE (delete_test_suite not implemented per PRD P1)
+- Status: COMPLETE
 - Tasks: none open
-- Tests: 4 tool tests + integration tests
