@@ -8,5 +8,5 @@ jobs:
     name: Build Tests
     uses: ./.github/workflows/test-suite.yml
     with:
-      suite: build
+      suite: s1-build-deploy
       judge_mode: simple

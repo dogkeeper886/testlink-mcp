@@ -1,0 +1,51 @@
+id: TC-S2-002
+name: "MCP Tool: update_test_case"
+suite: s2-test-case
+priority: 3
+timeout: 30000
+dependencies: [TC-S1-001]
+
+steps:
+  - name: "Update test case name and summary"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts update_test_case \
+        '{"test_case_id":"tm-2","data":{"name":"Update Test Case - Modified","summary":"Updated by TC-TOOL-003","importance":3}}' \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "UPDATE_OK" || echo "UPDATE_FAILED"
+    timeout: 15000
+    expectPatterns:
+      - "UPDATE_OK"
+
+  - name: "Verify update was applied"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case \
+        '{"test_case_id":"168"}' \
+        2>/dev/null)
+      echo "$RESULT"
+      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
+      echo "$TEXT" | grep -q "Updated by TC-TOOL-003" && echo "VERIFY_SUMMARY_OK"
+    timeout: 15000
+    expectPatterns:
+      - "VERIFY_SUMMARY_OK"
+
+  - name: "Restore original test case"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts update_test_case \
+        '{"test_case_id":"tm-2","data":{"name":"Update Test Case","summary":"Test case for update_test_case integration test","importance":1}}' \
+        2>/dev/null)
+      echo "$RESULT"
+      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
+      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "RESTORE_OK" || echo "RESTORE_FAILED"
+    timeout: 15000
+    expectPatterns:
+      - "RESTORE_OK"
+
+criteria: |
+  Verify that:
+  - update_test_case modifies test case tm-2 (id:168) name, summary, and importance
+  - Reading the test case after update returns the new values
+  - Test data is restored to original state after test
+
+goal: "Test the update_test_case MCP tool against real TestLink"

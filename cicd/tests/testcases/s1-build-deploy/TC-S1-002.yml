@@ -1,10 +1,10 @@
-id: TC-E2E-001
+id: TC-S1-002
 name: MCP Server Startup Validation
-suite: e2e
+suite: s1-build-deploy
 priority: 1
 timeout: 30000
 dependencies:
-  - TC-BUILD-001
+  - TC-S1-001
 
 steps:
   - name: Verify server exits cleanly without API key
@@ -12,8 +12,8 @@ steps:
     expectPatterns:
       - "EXIT_OK"
 
-  - name: Verify dist entry point is executable
-    command: node -e "import('./dist/index.js').catch(() => console.log('MODULE_OK'))"
+  - name: Verify dist entry point is valid JavaScript
+    command: node --check dist/index.js && echo "MODULE_OK"
     timeout: 10000
     expectPatterns:
       - "MODULE_OK"

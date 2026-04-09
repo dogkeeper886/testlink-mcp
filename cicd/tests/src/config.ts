@@ -7,7 +7,7 @@
 /**
  * Available test suites - extend this for your project.
  */
-export const SUITES = ['build', 'integration', 'e2e', 'tool'] as const;
+export const SUITES = ['s1-build-deploy', 's2-test-case', 's3-test-suite', 's4-test-plan', 's5-build-mgmt', 's6-execution', 's7-requirements'] as const;
 export type Suite = typeof SUITES[number];
 
 /**

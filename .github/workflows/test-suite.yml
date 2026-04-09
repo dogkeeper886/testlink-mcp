@@ -8,10 +8,13 @@ on:
         required: true
         type: choice
         options:
-          - "build"
-          - "integration"
-          - "e2e"
-          - "tool"
+          - "s1-build-deploy"
+          - "s2-test-case"
+          - "s3-test-suite"
+          - "s4-test-plan"
+          - "s5-build-mgmt"
+          - "s6-execution"
+          - "s7-requirements"
           - "all"
       judge_mode:
         description: "Test judge mode"

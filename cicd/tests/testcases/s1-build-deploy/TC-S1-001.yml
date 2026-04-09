@@ -1,6 +1,6 @@
-id: TC-BUILD-001
+id: TC-S1-001
 name: Project Build Verification
-suite: build
+suite: s1-build-deploy
 priority: 1
 timeout: 120000
 dependencies: []

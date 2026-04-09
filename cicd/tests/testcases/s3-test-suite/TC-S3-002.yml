@@ -1,9 +1,9 @@
-id: TC-TOOL-007
+id: TC-S3-002
 name: "MCP Tool: list_test_cases_in_suite"
-suite: tool
+suite: s3-test-suite
 priority: 7
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "List test cases in CRUD Tests suite"

@@ -1,9 +1,9 @@
-id: TC-TOOL-002
+id: TC-S2-001
 name: "MCP Tool: read_test_case"
-suite: tool
+suite: s2-test-case
 priority: 2
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Read test case by numeric ID"

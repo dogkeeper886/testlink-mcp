@@ -1,9 +1,9 @@
-id: TC-TOOL-006
+id: TC-S3-004
 name: "MCP Tool: create_test_suite"
-suite: tool
+suite: s3-test-suite
 priority: 6
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Create a top-level suite"

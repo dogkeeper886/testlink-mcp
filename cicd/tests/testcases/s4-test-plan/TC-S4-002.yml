@@ -1,9 +1,9 @@
-id: TC-TOOL-012
+id: TC-S4-002
 name: "MCP Tool: get_test_cases_for_test_plan"
-suite: tool
+suite: s4-test-plan
 priority: 12
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Get test cases assigned to CI Test Plan"

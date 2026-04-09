@@ -1,9 +1,9 @@
-id: TC-TOOL-015
+id: TC-S5-001
 name: "MCP Tool: close_build + delete_test_plan"
-suite: tool
+suite: s5-build-mgmt
 priority: 15
 timeout: 45000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Create a temporary plan and build"

@@ -1,9 +1,9 @@
-id: TC-TOOL-001
+id: TC-S2-003
 name: "MCP Tool: create_test_case"
-suite: tool
+suite: s2-test-case
 priority: 1
 timeout: 30000
-dependencies: [TC-TOOL-000]
+dependencies: [TC-S1-001]
 
 steps:
   - name: "Create a test case via MCP"

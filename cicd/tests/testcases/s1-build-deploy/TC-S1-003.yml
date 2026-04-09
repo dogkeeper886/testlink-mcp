@@ -1,10 +1,10 @@
-id: TC-INTEGRATION-001
+id: TC-S1-003
 name: Docker Image Build
-suite: integration
+suite: s1-build-deploy
 priority: 1
 timeout: 180000
 dependencies:
-  - TC-BUILD-001
+  - TC-S1-001
 
 steps:
   - name: Build Docker image
