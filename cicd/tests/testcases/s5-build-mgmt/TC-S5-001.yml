@@ -1,4 +1,5 @@
 id: TC-S5-001
+testlink_id: 29
 name: "MCP Tool: close_build + delete_test_plan"
 suite: s5-build-mgmt
 priority: 15

@@ -1,4 +1,5 @@
 id: TC-S2-003
+testlink_id: 22
 name: "MCP Tool: create_test_case"
 suite: s2-test-case
 priority: 1
@@ -9,7 +10,7 @@ steps:
   - name: "Create a test case via MCP"
     command: |
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_case \
-        '{"data":{"testprojectid":"162","testsuiteid":"163","name":"CI-Created-Case","authorlogin":"admin","summary":"Created by TC-TOOL-001","importance":2}}' \
+        '{"data":{"testprojectid":"162","testsuiteid":"271","name":"CI-Created-Case","authorlogin":"admin","summary":"Created by TC-TOOL-001","importance":2}}' \
         2>/dev/null)
       echo "$RESULT"
       # Extract test case ID from nested JSON response

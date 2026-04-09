@@ -1,4 +1,5 @@
 id: TC-S7-001
+testlink_id: 31
 name: "MCP Tool: list_requirements"
 suite: s7-requirements
 priority: 17

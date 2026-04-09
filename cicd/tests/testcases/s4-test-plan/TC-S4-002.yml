@@ -1,4 +1,5 @@
 id: TC-S4-002
+testlink_id: 28
 name: "MCP Tool: get_test_cases_for_test_plan"
 suite: s4-test-plan
 priority: 12
@@ -14,7 +15,7 @@ steps:
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
       echo "$TEXT" | grep -q "Plan Workflow Case" && echo "FOUND_WORKFLOW_CASE"
-      echo "$TEXT" | grep -q "tm-3" && echo "FOUND_EXTERNAL_ID"
+      echo "$TEXT" | grep -q "tm-16" && echo "FOUND_EXTERNAL_ID"
     timeout: 15000
     expectPatterns:
       - "FOUND_WORKFLOW_CASE"
@@ -44,7 +45,7 @@ steps:
 criteria: |
   Verify that:
   - get_test_cases_for_test_plan returns cases from CI Test Plan (172)
-  - Known case "Plan Workflow Case" (tm-3) is present
+  - Known case "Plan Workflow Case" (tm-16) is present
   - Response contains expected fields (tcase_name, tcase_id, version, exec_status, full_external_id)
 
 goal: "Test the get_test_cases_for_test_plan MCP tool against real TestLink"

@@ -1,4 +1,5 @@
 id: TC-S6-001
+testlink_id: 30
 name: "MCP Tool: create_test_execution + read_test_execution"
 suite: s6-execution
 priority: 14
@@ -26,7 +27,7 @@ steps:
     command: |
       BUILD_ID=$(cat /tmp/tc-tool-014-build-id.txt)
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_execution \
-        "{\"data\":{\"test_case_id\":\"170\",\"plan_id\":\"172\",\"build_id\":\"$BUILD_ID\",\"status\":\"p\",\"notes\":\"Executed by TC-TOOL-014\"}}" \
+        "{\"data\":{\"test_case_id\":\"277\",\"plan_id\":\"172\",\"build_id\":\"$BUILD_ID\",\"status\":\"p\",\"notes\":\"Executed by TC-TOOL-014\"}}" \
         2>/dev/null)
       echo "$RESULT"
       TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
@@ -47,7 +48,7 @@ steps:
       python3 -c "
       import json
       data = json.loads('''$(echo "$TEXT")''')
-      case = data.get('170', [{}])[0]
+      case = data.get('277', [{}])[0]
       status = case.get('exec_status', 'n')
       if status == 'p':
           print('EXEC_STATUS_PASS')
@@ -60,7 +61,7 @@ steps:
 
 criteria: |
   Verify that:
-  - create_test_execution records a pass result for case 170 (tm-3) in plan 172
+  - create_test_execution records a pass result for case 277 (tm-16) in plan 172
   - The execution is confirmed via get_test_cases_for_test_plan showing exec_status=p
 
 goal: "Test create_test_execution MCP tool and verify execution was recorded"

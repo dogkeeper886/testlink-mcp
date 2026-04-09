@@ -1,4 +1,5 @@
 id: TC-S3-004
+testlink_id: 26
 name: "MCP Tool: create_test_suite"
 suite: s3-test-suite
 priority: 6

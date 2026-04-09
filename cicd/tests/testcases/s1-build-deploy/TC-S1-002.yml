@@ -1,4 +1,5 @@
 id: TC-S1-002
+testlink_id: 18
 name: MCP Server Startup Validation
 suite: s1-build-deploy
 priority: 1
