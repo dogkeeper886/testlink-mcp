@@ -53,7 +53,7 @@ on:
 jobs:
   test:
     name: Run ${{ inputs.suite }} Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       result: ${{ steps.run-tests.outcome }}
 
