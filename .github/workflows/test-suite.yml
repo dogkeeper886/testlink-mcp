@@ -29,6 +29,10 @@ on:
         required: false
         default: "gemma3:12b-judge"
         type: string
+      test_id:
+        description: "Run a single test by ID (e.g., TC-S1-001)"
+        required: false
+        type: string
   workflow_call:
     inputs:
       suite:
@@ -44,6 +48,10 @@ on:
         description: "LLM model for judging"
         required: false
         default: "gemma3:12b-judge"
+        type: string
+      test_id:
+        description: "Run a single test by ID"
+        required: false
         type: string
     outputs:
       result:
@@ -92,12 +100,19 @@ jobs:
             SUITE_FLAG="--suite ${{ inputs.suite }}"
           fi
 
+          # Build test ID flag
+          ID_FLAG=""
+          if [ -n "${{ inputs.test_id }}" ]; then
+            ID_FLAG="--id ${{ inputs.test_id }}"
+          fi
+
           echo "Suite: ${{ inputs.suite }}"
+          echo "Test ID: ${{ inputs.test_id || 'all' }}"
           echo "Judge mode: ${{ inputs.judge_mode || 'dual' }}"
           echo "Judge flags: $JUDGE_FLAGS"
 
           # Run tests with JSON output
-          npx tsx src/cli.ts run $SUITE_FLAG $JUDGE_FLAGS --format json > /tmp/test-results.json || true
+          npx tsx src/cli.ts run $SUITE_FLAG $ID_FLAG $JUDGE_FLAGS --format json > /tmp/test-results.json || true
 
           echo "--- JSON Results ---"
           cat /tmp/test-results.json
