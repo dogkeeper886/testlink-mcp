@@ -94,3 +94,4 @@ coverage/
 cicd/results/*
 !cicd/results/.gitignore
 cicd/tests/node_modules/
+cicd/tests/dist/
