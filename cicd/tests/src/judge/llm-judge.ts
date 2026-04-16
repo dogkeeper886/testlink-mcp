@@ -86,9 +86,9 @@ export class LLMJudge {
         format: 'Respond with a single JSON object',
         fields: {
           testId: r.testCase.id,
-          pass: 'true if test meets all criteria, false otherwise',
-          reason: 'Brief explanation of your verdict',
-          evidence: 'Required if pass is false — the exact stdout content or log line that caused failure',
+          pass: 'boolean — true or false',
+          reason: 'Brief explanation referencing each criterion',
+          evidence: 'Optional — quote the exact stdout/stderr/log content that supports your verdict if available',
         },
       },
     };
