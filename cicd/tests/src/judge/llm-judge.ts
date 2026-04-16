@@ -112,10 +112,10 @@ export class LLMJudge {
     const testId = result.testCase.id;
 
     const response = await axios.post(
-      `${this.ollamaUrl}/api/generate`,
+      `${this.ollamaUrl}/api/chat`,
       {
         model: this.model,
-        prompt,
+        messages: [{ role: 'user', content: prompt }],
         stream: false,
         format: 'json',
         options: {
@@ -128,7 +128,7 @@ export class LLMJudge {
       }
     );
 
-    const responseText = response.data.response;
+    const responseText = response.data.message?.content;
     const promptTokens = response.data.prompt_eval_count ?? '?';
     const responseTokens = response.data.eval_count ?? '?';
     process.stderr.write(`  [LLM] Tokens for ${testId}: prompt=${promptTokens}, response=${responseTokens}\n`);
