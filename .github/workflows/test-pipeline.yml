@@ -25,6 +25,7 @@ jobs:
       suite: s1-build-deploy
       judge_mode: ${{ inputs.judge_mode }}
       judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
 
   s2-test-case:
     name: "S2: Test Case Management"
