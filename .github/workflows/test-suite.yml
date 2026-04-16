@@ -74,6 +74,7 @@ jobs:
         env:
           TESTLINK_URL: ${{ secrets.TESTLINK_URL }}
           TESTLINK_API_KEY: ${{ secrets.TESTLINK_API_KEY }}
+          OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
         run: |
           cd cicd/tests
 
