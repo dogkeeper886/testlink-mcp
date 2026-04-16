@@ -2,6 +2,20 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      judge_mode:
+        description: "Test judge mode"
+        required: false
+        default: "simple"
+        type: choice
+        options:
+          - "simple"
+          - "dual"
+      judge_model:
+        description: "LLM model for judging (if dual mode)"
+        required: false
+        default: "gemma3:12b-judge"
+        type: string
 
 jobs:
   build:
@@ -9,4 +23,6 @@ jobs:
     uses: ./.github/workflows/test-suite.yml
     with:
       suite: s1-build-deploy
-      judge_mode: simple
+      judge_mode: ${{ inputs.judge_mode }}
+      judge_model: ${{ inputs.judge_model }}
+    secrets: inherit
