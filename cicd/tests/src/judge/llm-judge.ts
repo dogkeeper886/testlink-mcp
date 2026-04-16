@@ -218,9 +218,10 @@ export class LLMJudge {
     try {
       process.stderr.write(`  [LLM] Unloading judge model ${this.model}...\n`);
       await axios.post(
-        `${this.ollamaUrl}/api/generate`,
+        `${this.ollamaUrl}/api/chat`,
         {
           model: this.model,
+          messages: [],
           keep_alive: 0,
         },
         {
