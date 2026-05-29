@@ -1,42 +1,42 @@
 id: TC-S2-001
-testlink_id: 20
-name: "MCP Tool: read_test_case"
+name: "Flow: provision project + suite fixtures"
 suite: s2-test-case
-priority: 2
-timeout: 30000
+priority: 1
+timeout: 60000
 dependencies: [TC-S1-001]
 
-steps:
-  - name: "Read test case by numeric ID"
-    command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case \
-        '{"test_case_id":"273"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "Read Test Case" && echo "READ_NUMERIC_OK"
-    timeout: 15000
-    expectPatterns:
-      - "Read Test Case"
-      - "READ_NUMERIC_OK"
+# First stage of the end-to-end flow. Provisions the shared fixtures every
+# later stage consumes, published under /tmp/tl-flow/. Idempotent.
+# (Project creation is not an MCP tool, so it is created out-of-band.)
 
-  - name: "Read test case by external ID"
+steps:
+  - name: "Ensure project fixture (out-of-band)"
     command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case \
-        '{"test_case_id":"tm-14"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "Read Test Case" && echo "READ_EXTERNAL_OK"
-    timeout: 15000
+      mkdir -p /tmp/tl-flow
+      P=$(npx tsx cicd/tests/src/flow-provision.ts 2>/dev/null)
+      echo "$P" | python3 -c "import sys,json; d=json.load(sys.stdin); open('/tmp/tl-flow/project_id','w').write(d['id']); open('/tmp/tl-flow/project_name','w').write(d['name']); open('/tmp/tl-flow/prefix','w').write(d['prefix'])"
+      echo "PROVISION_PROJECT_OK $(cat /tmp/tl-flow/project_id) $(cat /tmp/tl-flow/prefix)"
+    timeout: 30000
     expectPatterns:
-      - "Read Test Case"
-      - "READ_EXTERNAL_OK"
+      - "PROVISION_PROJECT_OK [0-9]+"
+
+  - name: "Ensure suite fixture (idempotent via MCP)"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id)
+      SUITES=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      SID=$(echo "$SUITES" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[s for s in d if s.get('name')=='Flow Suite']; print(m[0]['id'] if m else '')")
+      if [ -z "$SID" ]; then
+        CS=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite "{\"project_id\":\"$PID\",\"suite_name\":\"Flow Suite\",\"details\":\"flow fixture\"}" 2>/dev/null)
+        SID=$(echo "$CS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); s=d[0] if isinstance(d,list) else d; print(s['id'])")
+      fi
+      echo "$SID" > /tmp/tl-flow/suite_id
+      [ -n "$SID" ] && echo "PROVISION_SUITE_OK suite=$SID"
+    timeout: 30000
+    expectPatterns:
+      - "PROVISION_SUITE_OK suite=[0-9]+"
 
 criteria: |
-  Verify that:
-  - read_test_case retrieves test case tm-14 (id:273) by numeric ID
-  - read_test_case retrieves the same test case by external ID format (tm-14)
-  - Both formats return matching test case data
-
-goal: "Test the read_test_case MCP tool with both ID formats"
+  Provision shared flow fixtures: a dedicated project (out-of-band, since project
+  creation is not an MCP tool) and a reusable top-level "Flow Suite". Publishes
+  project_id, project_name, prefix, suite_id to /tmp/tl-flow/.
+goal: "Provision project + suite fixtures for the end-to-end flow"

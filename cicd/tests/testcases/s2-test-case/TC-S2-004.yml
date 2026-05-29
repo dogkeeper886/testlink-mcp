@@ -1,0 +1,21 @@
+id: TC-S2-004
+name: "Flow: update_test_case"
+suite: s2-test-case
+priority: 4
+timeout: 30000
+dependencies: [TC-S2-002]
+
+steps:
+  - name: "Update summary + importance, verify on read-back"
+    command: |
+      TC=$(cat /tmp/tl-flow/case_ext_id)
+      npx tsx cicd/tests/src/mcp-client.ts update_test_case "{\"test_case_id\":\"$TC\",\"data\":{\"summary\":\"<p>UPDATED_MARKER</p>\",\"importance\":1}}" 2>/dev/null >/dev/null
+      npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; assert 'UPDATED_MARKER' in (tc.get('summary') or ''),'summary not updated'; assert str(tc.get('importance'))=='1','importance not updated'; print('UPDATE_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "UPDATE_OK"
+
+criteria: |
+  update_test_case modifies the flow case's summary and importance; the
+  change is visible on read-back.
+goal: "Update the flow's test case via the MCP update_test_case tool"

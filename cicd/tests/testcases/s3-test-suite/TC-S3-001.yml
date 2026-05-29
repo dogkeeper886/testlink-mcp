@@ -1,29 +1,20 @@
 id: TC-S3-001
-testlink_id: 23
-name: "MCP Tool: list_test_suites"
+name: "Flow: list_test_suites"
 suite: s3-test-suite
-priority: 5
+priority: 2
 timeout: 30000
-dependencies: [TC-S1-001]
+dependencies: [TC-S2-001]
 
 steps:
-  - name: "List suites for testlink-mcp project"
+  - name: "List suites and confirm the flow suite is present"
     command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites \
-        '{"project_id":"162"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "Test Data" && echo "FOUND_TEST_DATA_SUITE"
-      echo "$TEXT" | grep -q "S1-Build-Deploy" && echo "FOUND_S1_SUITE"
-    timeout: 15000
+      PID=$(cat /tmp/tl-flow/project_id); SID=$(cat /tmp/tl-flow/suite_id)
+      npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$PID\"}" 2>/dev/null | python3 -c "import sys,json,os; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; sid=open('/tmp/tl-flow/suite_id').read().strip(); assert any(str(s.get('id'))==sid for s in d),'flow suite not listed'; print('LIST_SUITES_OK')"
+    timeout: 20000
     expectPatterns:
-      - "FOUND_TEST_DATA_SUITE"
-      - "FOUND_S1_SUITE"
+      - "LIST_SUITES_OK"
 
 criteria: |
-  Verify that:
-  - list_test_suites returns suites for project 162 (testlink-mcp)
-  - Known suites "Test Data" (271) and "S1-Build-Deploy" (279) are present
-
-goal: "Test the list_test_suites MCP tool against real TestLink"
+  list_test_suites returns the project's first-level suites including the
+  provisioned Flow Suite.
+goal: "List test suites via the MCP list_test_suites tool"

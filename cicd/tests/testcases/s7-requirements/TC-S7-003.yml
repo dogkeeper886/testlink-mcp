@@ -1,0 +1,46 @@
+id: TC-S7-003
+name: "Flow: teardown (close build, delete case, delete plan)"
+suite: s7-requirements
+priority: 9
+timeout: 60000
+# Final stage. Depends on every fixture-consuming test so it runs last and
+# does not pull data out from under them.
+dependencies: [TC-S2-003, TC-S2-004, TC-S3-002, TC-S4-002, TC-S6-001]
+
+# NOTE: the flow suite is intentionally NOT deleted — there is no
+# delete_test_suite MCP tool. Provisioning is idempotent (suite is reused),
+# so it does not accumulate. Tracked with #57.
+
+steps:
+  - name: "Close the build"
+    command: |
+      BUILD=$(cat /tmp/tl-flow/build_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts close_build "{\"build_id\":\"$BUILD\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'close_build errored'; print('BUILD_CLOSED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "BUILD_CLOSED_OK"
+
+  - name: "Delete the test case and confirm it is gone"
+    command: |
+      TC=$(cat /tmp/tl-flow/case_ext_id)
+      npx tsx cicd/tests/src/mcp-client.ts delete_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null >/dev/null
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); txt=r['content'][0]['text']; assert r.get('isError') or 'does not exist' in txt,'case still exists after delete'; print('CASE_DELETED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "CASE_DELETED_OK"
+
+  - name: "Delete the test plan"
+    command: |
+      PLAN=$(cat /tmp/tl-flow/plan_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_test_plan "{\"plan_id\":\"$PLAN\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete_test_plan errored'; print('PLAN_DELETED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "PLAN_DELETED_OK"
+
+criteria: |
+  Teardown closes the build, hard-deletes the flow case (verified gone), and
+  deletes the plan, leaving the instance clean for the next run.
+goal: "Tear down flow fixtures via the MCP close_build/delete tools"
