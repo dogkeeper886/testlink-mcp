@@ -74,15 +74,16 @@ This is the existing `/tmp/...id.txt` pattern, standardized:
 A producing step writes the ID; consuming steps read it:
 
 ```yaml
-# producer (s2 create)
+# producer (s2 create) — steps run from the project root, so use the full path
 command: |
-  RESULT=$(npx tsx src/mcp-client.ts create_test_case "$PAYLOAD" 2>/dev/null)
+  mkdir -p /tmp/tl-flow
+  RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_case "$PAYLOAD" 2>/dev/null)
   EXT=$(echo "$RESULT" | python3 -c "import sys,json;d=json.loads(json.load(sys.stdin)['content'][0]['text']);print(d[0]['additionalInfo']['external_id'])")
   echo "$PREFIX-$EXT" > /tmp/tl-flow/case_ext_id
 # consumer (s4 add-to-plan)
 command: |
   CASE=$(cat /tmp/tl-flow/case_ext_id)
-  npx tsx src/mcp-client.ts add_test_case_to_test_plan "{...,\"testcaseexternalid\":\"$CASE\"}"
+  npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan "{...,\"testcaseexternalid\":\"$CASE\"}"
 ```
 
 Ordering is declared with `dependencies` (and `priority` to break ties):
