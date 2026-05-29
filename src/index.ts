@@ -168,6 +168,7 @@ class TestLinkAPI {
       testcasename: data.name,
       authorlogin: data.authorlogin,
       summary: data.summary || '',
+      preconditions: data.preconditions || '',
       steps: data.steps || [],
       importance: data.importance || 2,
       executiontype: data.execution_type || 1,
