@@ -180,9 +180,12 @@ class TestLinkAPI {
 
   async deleteTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
-    // TestLink XML-RPC library doesn't have a direct delete method
-    // We'll implement this by marking as obsolete
-    return this.updateTestCase(testCaseId, { status: 7 }); // Status 7 = obsolete
+    // testlink-xmlrpc 3.0.0 has no typed deleteTestCase wrapper; call the
+    // server's tl.deleteTestCase (real delete) via the generic dispatcher.
+    const params = /^[A-Za-z0-9]+-\d+$/.test(testCaseId)
+      ? { testcaseexternalid: testCaseId }
+      : { testcaseid: parseTestCaseId(testCaseId) };
+    return this.handleAPICall(() => (this.client as any)._performRequest('deleteTestCase', params));
   }
 
   async getTestProjects() {
