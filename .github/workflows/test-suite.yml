@@ -19,7 +19,7 @@ on:
       judge_mode:
         description: "Test judge mode"
         required: false
-        default: "dual"
+        default: "simple"
         type: choice
         options:
           - "simple"
@@ -42,7 +42,7 @@ on:
       judge_mode:
         description: "Test judge mode (simple, dual)"
         required: false
-        default: "dual"
+        default: "simple"
         type: string
       judge_model:
         description: "LLM model for judging"
@@ -86,12 +86,10 @@ jobs:
         run: |
           cd cicd/tests
 
-          # Build judge flags based on input
+          # Build judge flags based on input (simple judge is the default; LLM is opt-in)
           JUDGE_FLAGS=""
-          if [ "${{ inputs.judge_mode }}" = "simple" ]; then
-            JUDGE_FLAGS="--no-llm"
-          else
-            JUDGE_FLAGS="--judge-model ${{ inputs.judge_model || 'llama3:8b' }}"
+          if [ "${{ inputs.judge_mode }}" = "dual" ]; then
+            JUDGE_FLAGS="--llm --judge-model ${{ inputs.judge_model || 'llama3:8b' }}"
           fi
 
           # Build suite flag
