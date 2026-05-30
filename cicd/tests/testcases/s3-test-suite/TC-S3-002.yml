@@ -1,41 +1,20 @@
 id: TC-S3-002
-testlink_id: 24
-name: "MCP Tool: list_test_cases_in_suite"
+name: "Flow: list_test_cases_in_suite"
 suite: s3-test-suite
-priority: 7
+priority: 3
 timeout: 30000
-dependencies: [TC-S1-001]
+dependencies: [TC-S2-002]
 
 steps:
-  - name: "List test cases in CRUD Tests suite"
+  - name: "List cases in the flow suite and confirm the flow case is present"
     command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
-        '{"suite_id":"271"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "Read Test Case" && echo "FOUND_READ_CASE"
-      echo "$TEXT" | grep -q "Update Test Case" && echo "FOUND_UPDATE_CASE"
-    timeout: 15000
+      SID=$(cat /tmp/tl-flow/suite_id)
+      npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite "{\"suite_id\":\"$SID\"}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; assert any(c.get('name')=='Flow Case' for c in d),'flow case not listed'; print('LIST_CASES_OK')"
+    timeout: 20000
     expectPatterns:
-      - "FOUND_READ_CASE"
-      - "FOUND_UPDATE_CASE"
-
-  - name: "List test cases in empty suite returns valid response"
-    command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_cases_in_suite \
-        '{"suite_id":"272"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
-      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "EMPTY_SUITE_OK" || echo "EMPTY_SUITE_FAILED"
-    timeout: 15000
-    expectPatterns:
-      - "EMPTY_SUITE_OK"
+      - "LIST_CASES_OK"
 
 criteria: |
-  Verify that:
-  - list_test_cases_in_suite returns known cases from CRUD Tests suite (271)
-  - Listing cases in Plan Tests suite (272) returns a valid response
-
-goal: "Test the list_test_cases_in_suite MCP tool against real TestLink"
+  list_test_cases_in_suite returns the cases in the flow suite, including the
+  case created in TC-S2-002.
+goal: "List cases in a suite via the MCP list_test_cases_in_suite tool"

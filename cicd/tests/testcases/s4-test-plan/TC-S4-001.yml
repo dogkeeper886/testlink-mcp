@@ -1,71 +1,39 @@
 id: TC-S4-001
-testlink_id: 27
-name: "MCP Tool: add_test_case_to_test_plan"
+name: "Flow: create_test_plan + add_test_case_to_test_plan"
 suite: s4-test-plan
-priority: 11
-timeout: 45000
-dependencies: [TC-S1-001]
+priority: 2
+timeout: 30000
+dependencies: [TC-S2-002]
+
+# Creates a test plan (keyed by project NAME, per the tool contract) and adds
+# the flow case to it. Publishes plan_id for s5/s6/teardown.
 
 steps:
-  - name: "Create a temporary test plan"
+  - name: "Create or reuse the flow test plan (idempotent)"
     command: |
-      STAMP=$(date +%s)
-      PLAN_NAME="CI-AddCase-$STAMP"
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan \
-        "{\"data\":{\"project_id\":\"testlink-mcp\",\"name\":\"$PLAN_NAME\",\"notes\":\"Temp plan for TC-TOOL-011\"}}" \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      PLAN_ID=$(echo "$TEXT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('id','') if isinstance(d,list) else d.get('id',''))")
-      echo "TEMP_PLAN_ID=$PLAN_ID"
-      echo "$PLAN_ID" > /tmp/tc-tool-011-plan-id.txt
-    timeout: 15000
+      PNAME=$(cat /tmp/tl-flow/project_name); PID=$(cat /tmp/tl-flow/project_id)
+      PLANS=$(npx tsx cicd/tests/src/mcp-client.ts list_test_plans "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      PLAN=$(echo "$PLANS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[p for p in d if p.get('name')=='Flow Plan']; print(m[0]['id'] if m else '')")
+      if [ -z "$PLAN" ]; then
+        RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan "{\"data\":{\"project_id\":\"$PNAME\",\"name\":\"Flow Plan\",\"notes\":\"flow\"}}" 2>/dev/null)
+        PLAN=$(echo "$RESULT" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); o=d[0] if isinstance(d,list) else d; print(o.get('id') or o['additionalInfo']['id'])")
+      fi
+      echo "$PLAN" > /tmp/tl-flow/plan_id
+      echo "PLAN_READY=$PLAN"
+    timeout: 20000
     expectPatterns:
-      - "TEMP_PLAN_ID="
+      - "PLAN_READY=[0-9]+"
 
-  - name: "Add test case tm-14 to the plan"
+  - name: "Add the flow case to the plan"
     command: |
-      PLAN_ID=$(cat /tmp/tc-tool-011-plan-id.txt)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan \
-        "{\"data\":{\"testcaseid\":\"tm-14\",\"testplanid\":\"$PLAN_ID\",\"testprojectid\":\"162\"}}" \
-        2>/dev/null)
-      echo "$RESULT"
-      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
-      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "ADD_CASE_OK" || echo "ADD_CASE_FAILED"
-    timeout: 15000
+      PID=$(cat /tmp/tl-flow/project_id); PLAN=$(cat /tmp/tl-flow/plan_id); CASE=$(cat /tmp/tl-flow/case_ext_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan "{\"data\":{\"testcaseid\":\"$CASE\",\"testplanid\":\"$PLAN\",\"testprojectid\":\"$PID\",\"version\":1}}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'add to plan errored'; print('ADD_TO_PLAN_OK')"
+    timeout: 20000
     expectPatterns:
-      - "ADD_CASE_OK"
-
-  - name: "Verify case appears in plan"
-    command: |
-      PLAN_ID=$(cat /tmp/tc-tool-011-plan-id.txt)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts get_test_cases_for_test_plan \
-        "{\"plan_id\":\"$PLAN_ID\"}" \
-        2>/dev/null)
-      echo "$RESULT"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | grep -q "Read Test Case" && echo "VERIFY_CASE_IN_PLAN"
-    timeout: 15000
-    expectPatterns:
-      - "VERIFY_CASE_IN_PLAN"
-
-  - name: "Cleanup: delete temporary plan"
-    command: |
-      PLAN_ID=$(cat /tmp/tc-tool-011-plan-id.txt)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_test_plan \
-        "{\"plan_id\":\"$PLAN_ID\"}" \
-        2>/dev/null)
-      echo "$RESULT"
-      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
-      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "CLEANUP_OK" || echo "CLEANUP_FAILED"
-    timeout: 15000
-    expectPatterns:
-      - "CLEANUP_OK"
+      - "ADD_TO_PLAN_OK"
 
 criteria: |
-  Verify that:
-  - add_test_case_to_test_plan assigns test case tm-14 to a plan
-  - get_test_cases_for_test_plan confirms the case is in the plan
-  - Cleanup: temporary plan is deleted after verification
-
-goal: "Test the add_test_case_to_test_plan MCP tool end-to-end"
+  create_test_plan creates a plan in the flow project and
+  add_test_case_to_test_plan links the flow case to it.
+goal: "Create a plan and add the flow case via the MCP tools"

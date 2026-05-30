@@ -1,0 +1,20 @@
+id: TC-S2-003
+name: "Flow: read_test_case"
+suite: s2-test-case
+priority: 3
+timeout: 30000
+dependencies: [TC-S2-002]
+
+steps:
+  - name: "Read back the created case and verify fields"
+    command: |
+      TC=$(cat /tmp/tl-flow/case_ext_id)
+      npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; assert tc.get('name')=='Flow Case','name'; assert 'ORIGINAL' in (tc.get('summary') or ''),'summary'; assert 'PRECOND_MARKER' in (tc.get('preconditions') or ''),'preconditions dropped'; print('READ_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "READ_OK"
+
+criteria: |
+  read_test_case returns the created case with name, summary, and
+  preconditions (issue #51 regression coverage).
+goal: "Read the flow's test case via the MCP read_test_case tool"

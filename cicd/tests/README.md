@@ -1,8 +1,8 @@
 # TestLink MCP — Integration Test Framework
 
 Integration tests for the MCP server. Each test spins up the **real** `dist/index.js`
-server over stdio (via `src/mcp-client.ts`), calls its tools against a live TestLink,
-and judges the responses. Tests are declarative YAML under `testcases/`.
+server over stdio (via `cicd/tests/src/mcp-client.ts`), calls its tools against a live
+TestLink, and judges the responses. Tests are declarative YAML under `testcases/`.
 
 See `cli.ts`, `executor.ts`, `loader.ts`, `judge/`, `reporter/` for the runner internals.
 
@@ -19,32 +19,29 @@ data — they consume what earlier stages produced and clean it up at the end.
 This is why the suites are numbered: the number is the position in the flow.
 
 ```
-s1  BUILD & DEPLOY        build server, validate startup, build docker image
-        │                 (no TestLink data — pure CI/build checks)
+s1  BUILD & DEPLOY     build server, validate startup, build docker image
+        │              (no TestLink data — pure CI/build checks)
         ▼
-PROVISION                 ensure project, CREATE a test suite
-        │                 → publishes  PROJECT_ID, SUITE_ID
+s2  TEST CASE          TC-S2-001 provision: ensure project + suite
+        │                → publishes project_id, project_name, prefix, suite_id
+        │              TC-S2-002 create_test_case
+        │                → publishes case_ext_id (MFT-N) + case_internal_id
+        │              TC-S2-003 read · TC-S2-004 update
         ▼
-s2  TEST CASE             CREATE case in SUITE_ID → READ it → UPDATE it
-        │                 → publishes  CASE_ID / CASE_EXT_ID
-        │                 (DELETE is deferred to teardown — see below)
+s3  TEST SUITE         list_test_suites · list_test_cases_in_suite · update_test_suite
         ▼
-s3  TEST SUITE            list suites, list cases in suite, update suite
-        │                 (operates on PROJECT_ID / SUITE_ID)
+s4  TEST PLAN          TC-S4-001 create_test_plan (reuse-or-create) + add case
+        │                → publishes plan_id
+        │              TC-S4-002 get_test_cases_for_test_plan
         ▼
-s4  TEST PLAN             CREATE plan → ADD CASE_ID to plan → get cases for plan
-        │                 → publishes  PLAN_ID
+s5  BUILD MGMT         TC-S5-001 create_build (reuse-or-create, left OPEN) + list_builds
+        │                → publishes build_id
         ▼
-s5  BUILD MGMT            CREATE build under PLAN_ID → list builds → close build
-        │                 → publishes  BUILD_ID
+s6  EXECUTION          TC-S6-001 create_test_execution (pass result)
         ▼
-s6  EXECUTION             record execution for CASE_ID in BUILD_ID → read execution
-        │
-        ▼
-s7  REQUIREMENTS          list / get requirements (read-only)
-        │
-        ▼
-TEARDOWN                  DELETE case, plan, suite  (reverse order; the "D" in CRUD)
+s7  REQUIREMENTS       TC-S7-001 list_requirements
+        │              TC-S7-003 TEARDOWN: close build → delete case (verified
+        ▼                        gone) → delete plan
 ```
 
 > **CRUD is embedded in the flow, not isolated in one test.** Create lands in the
@@ -56,48 +53,72 @@ TEARDOWN                  DELETE case, plan, suite  (reverse order; the "D" in C
 > sort), so the real ordering follows the arrows above regardless of the numeric
 > suite name.
 
+A full `cli.ts run` executes 16 tests and passes against a **fresh** TestLink
+(only precondition: the XML-RPC API is enabled), repeatably.
+
+---
+
+## Test data (stable named fixtures — no hardcoded or random IDs)
+
+Every entity is created by the flow with a fixed name; all IDs are produced at
+runtime and threaded, never hardcoded.
+
+| Entity | Name | Notes |
+|--------|------|-------|
+| Project | `MCP Flow Tests` (prefix `MFT`) | created out-of-band by `flow-provision.ts` |
+| Suite   | `Flow Suite` | idempotent (reused by name) |
+| Case    | `Flow Case` | author `admin` (the built-in default user) |
+| Plan    | `Flow Plan` | idempotent (reuse-or-create) |
+| Build   | `Flow Build` | idempotent, left open for s6 |
+
+Project creation is **not** an MCP tool, so the project fixture is provisioned
+out-of-band via `flow-provision.ts` (uses the `testlink-xmlrpc` client directly).
+Everything else is created through the MCP tools under test.
+
 ---
 
 ## How fixtures are threaded
 
-Stages publish IDs to small files under a shared scratch dir; later stages read them.
-This is the existing `/tmp/...id.txt` pattern, standardized:
+Stages publish IDs to small files under a shared scratch dir; later stages read them:
 
 ```
-/tmp/tl-flow/project_id
+/tmp/tl-flow/project_id        # numeric
+/tmp/tl-flow/project_name      # used by create_test_plan (keys plans by NAME)
+/tmp/tl-flow/prefix            # e.g. MFT
 /tmp/tl-flow/suite_id
-/tmp/tl-flow/case_ext_id     # e.g. MLT-1  (external ID used by read/update/delete)
+/tmp/tl-flow/case_ext_id       # MFT-N — used by read/update/delete/add-to-plan
+/tmp/tl-flow/case_internal_id  # numeric — used by create_test_execution (see gaps)
 /tmp/tl-flow/plan_id
 /tmp/tl-flow/build_id
 ```
 
-A producing step writes the ID; consuming steps read it:
+A producing step writes the ID; consuming steps read it (steps run from the project
+root, so use the full `cicd/tests/...` path):
 
 ```yaml
-# producer (s2 create) — steps run from the project root, so use the full path
+# producer (TC-S2-002 create)
 command: |
   mkdir -p /tmp/tl-flow
   RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_case "$PAYLOAD" 2>/dev/null)
-  EXT=$(echo "$RESULT" | python3 -c "import sys,json;d=json.loads(json.load(sys.stdin)['content'][0]['text']);print(d[0]['additionalInfo']['external_id'])")
-  echo "$PREFIX-$EXT" > /tmp/tl-flow/case_ext_id
-# consumer (s4 add-to-plan)
+  echo "$RESULT" | python3 -c "import sys,json; a=json.loads(json.load(sys.stdin)['content'][0]['text'])[0]['additionalInfo']; open('/tmp/tl-flow/case_internal_id','w').write(str(a['id'])); open('/tmp/tl-flow/case_ext_id','w').write(open('/tmp/tl-flow/prefix').read().strip()+'-'+str(a['external_id']))"
+# consumer (TC-S4-001 add-to-plan)
 command: |
   CASE=$(cat /tmp/tl-flow/case_ext_id)
-  npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan "{...,\"testcaseexternalid\":\"$CASE\"}"
+  npx tsx cicd/tests/src/mcp-client.ts add_test_case_to_test_plan "{...,\"testcaseid\":\"$CASE\"}"
 ```
 
 Ordering is declared with `dependencies` (and `priority` to break ties):
 
 ```yaml
 id: TC-S4-001
-dependencies: [TC-S2-CREATE]   # runs only after the case exists
+dependencies: [TC-S2-002]   # runs only after the case exists
 ```
 
 ---
 
 ## Running
 
-Requires a reachable TestLink with the XML-RPC API enabled and at least one project.
+Requires a reachable TestLink with the XML-RPC API enabled.
 
 ```bash
 cd cicd/tests
@@ -106,7 +127,7 @@ export TESTLINK_API_KEY=<key>
 
 npx tsx src/cli.ts run                  # full flow (s1 → s7 + teardown)
 npx tsx src/cli.ts run --suite s4-test-plan   # one suite (deps auto-included)
-npx tsx src/cli.ts run --id TC-S2-CREATE      # one test (deps auto-included)
+npx tsx src/cli.ts run --id TC-S2-002         # one test (deps auto-included)
 npx tsx src/cli.ts list                       # list all tests
 ```
 
@@ -128,16 +149,32 @@ npx tsx src/cli.ts list                       # list all tests
 ## Adding a test to the flow
 
 1. Pick the stage and depend on the producer of the IDs you need
-   (`dependencies: [TC-S2-CREATE]`).
+   (`dependencies: [TC-S2-002]`).
 2. Read fixture IDs from `/tmp/tl-flow/*`; never hardcode project/suite/case IDs.
-3. If your test creates a new fixture, publish its ID to `/tmp/tl-flow/` for
-   downstream stages, and add a teardown step (or delete in a later stage).
-4. Each step `echo`s a marker (e.g. `READ_OK`) for `expectPatterns`; parse MCP
-   JSON with `python3` rather than dumping raw responses (keeps the error scan clean).
-5. Add a `testlink_id` for traceability if the test maps to a TestLink case.
+3. If your test creates a new fixture, give it a **stable name** and make creation
+   idempotent (reuse-or-create), then publish its ID to `/tmp/tl-flow/` and clean
+   it up in the teardown stage.
+4. Each step `echo`s a marker (e.g. `READ_OK`) for `expectPatterns`; parse MCP JSON
+   with `python3` rather than dumping raw responses (keeps the error scan clean).
 
 ### Don'ts
 - ❌ Hardcoded instance IDs (`162`, `271`, `tm-14`, …) — they pin the suite to one
   TestLink and break everywhere else.
+- ❌ IDs embedded in fixture names, or random/timestamp suffixes — use stable names
+  with idempotent reuse-or-create instead.
 - ❌ Per-test bootstrap of the whole project/suite — duplicate work; use the flow's
-  shared fixtures instead.
+  shared fixtures.
+
+---
+
+## Known gaps (tracked in #60)
+
+- **`read_test_execution`** — calls `getAllExecutionsResults` without the required
+  `testcaseid`, so it errors. Not exercised; re-enable in `TC-S6-001` once fixed.
+- **`create_test_execution`** — maps `test_case_id` straight to the internal
+  `testcaseid` (no external `PREFIX-N` resolution), so the flow feeds it
+  `case_internal_id`.
+- **`get_requirement`** (`TC-S7-002`, disabled) — no `create_requirement` tool to
+  provision a requirement fixture.
+- **No `delete_test_suite` tool** — teardown can't delete the suite; provisioning is
+  idempotent so it's reused rather than accumulated.

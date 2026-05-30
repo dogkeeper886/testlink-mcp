@@ -1,36 +1,21 @@
 id: TC-S7-001
-testlink_id: 31
-name: "MCP Tool: list_requirements"
+name: "Flow: list_requirements"
 suite: s7-requirements
-priority: 17
+priority: 2
 timeout: 30000
-dependencies: [TC-S1-001]
+dependencies: [TC-S2-001]
 
 steps:
-  - name: "List requirements for testlink-mcp project"
+  - name: "List requirements for the flow project"
     command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_requirements \
-        '{"project_id":"162"}' \
-        2>/dev/null)
-      echo "$RESULT"
-      IS_ERR=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('isError','false'))")
-      [ "$IS_ERR" = "false" ] || [ "$IS_ERR" = "False" ] && echo "LIST_REQ_OK" || echo "LIST_REQ_FAILED"
-      TEXT=$(echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['content'][0]['text'])")
-      echo "$TEXT" | python3 -c "
-      import sys, json
-      data = json.load(sys.stdin)
-      if isinstance(data, list):
-          print(f'REQ_COUNT={len(data)}')
-      else:
-          print('REQ_RESPONSE_VALID')
-      "
-    timeout: 15000
+      PID=$(cat /tmp/tl-flow/project_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_requirements "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'list_requirements errored'; d=json.loads(r['content'][0]['text']); assert isinstance(d,list),'expected a list'; print('LIST_REQS_OK')"
+    timeout: 20000
     expectPatterns:
-      - "LIST_REQ_OK"
+      - "LIST_REQS_OK"
 
 criteria: |
-  Verify that:
-  - list_requirements returns a valid response for project 162
-  - No error is returned (empty list is acceptable)
-
-goal: "Test the list_requirements MCP tool against real TestLink"
+  list_requirements returns a list for the flow project (empty is valid — the
+  flow does not create requirements, since there is no create_requirement tool).
+goal: "List requirements via the MCP list_requirements tool"
