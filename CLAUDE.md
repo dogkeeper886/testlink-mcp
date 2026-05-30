@@ -8,6 +8,10 @@ MCP server connecting Claude to TestLink test management. TypeScript, Node.js 20
 
 Fail fast, keep simple. See `.claude/skills/code-review/` for full guidelines.
 
+## Testing
+
+Integration tests under `cicd/tests/` form **one self-contained, connected end-to-end flow** — no hardcoded IDs, stable named fixtures, everything threaded and connected, with a unified teardown. Every added test must embed in the flow, never stand alone. See `.claude/skills/integration-test-flow/` for the principles and `cicd/tests/README.md` for the mechanics.
+
 ## Agent Behavior Rules
 
 1. **Apply changes uniformly** — When modifying one file in a group (e.g., workflow files, config files), apply the same change to ALL files in that group. Do not skip files based on reasoning about whether they "need" it.
