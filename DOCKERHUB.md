@@ -35,7 +35,7 @@ Add to your Cursor MCP settings:
 
 ## 📋 Features
 
-- **22 MCP Tools** for comprehensive TestLink management
+- **27 MCP Tools** for comprehensive TestLink management
 - **Test Case Management**: Create, read, update, delete test cases
 - **Test Suite Operations**: Manage test suites and organize test cases
 - **Test Plan Management**: Create test plans, assign test cases, manage builds
@@ -53,11 +53,12 @@ Add to your Cursor MCP settings:
 - `update_test_case` - Update test case fields with full validation
 - `delete_test_case` - Remove test case permanently
 
-### Test Suite Management (4 tools)
+### Test Suite Management (5 tools)
 - `list_test_suites` - Get test suites for a project
 - `list_test_cases_in_suite` - Get all test cases in a suite
 - `create_test_suite` - Create a new test suite in a project
 - `update_test_suite` - Update test suite properties
+- `delete_test_suite` - Delete a test suite and its contents
 
 ### Test Plan Management (5 tools)
 - `list_test_plans` - List all test plans for a project
@@ -72,12 +73,17 @@ Add to your Cursor MCP settings:
 - `close_build` - Close a build (prevents new test executions)
 
 ### Test Execution Management (2 tools)
-- `read_test_execution` - Get test execution details
+- `read_test_execution` - Get the last execution result for a test case in a plan
 - `create_test_execution` - Record test execution result
 
-### Requirement Management (2 tools)
+### Requirement Management (7 tools)
 - `list_requirements` - Get all requirements for a project
 - `get_requirement` - Get detailed information about a specific requirement
+- `list_requirement_specifications` - List requirement specifications for a project
+- `create_requirement_specification` - Create a requirement specification
+- `create_requirement` - Create a requirement inside a specification
+- `delete_requirement_specification` - Delete a specification and its requirements
+- `assign_requirements` - Link requirements to a test case (coverage)
 
 ### Project Management (1 tool)
 - `list_projects` - Get all test projects
