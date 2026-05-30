@@ -35,7 +35,9 @@ jobs:
   publish:
     name: Build & Push Docker Image
     needs: build-test
-    runs-on: ubuntu-latest
+    # Runs on the self-hosted runner (asus-rock), which is already
+    # `docker login`-ed to Docker Hub — so no login step or secrets are needed.
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -51,18 +53,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: |
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+      - name: Build and push (uses the runner's existing Docker login)
+        run: |
+          # --no-cache --pull: release builds must come from current source and a
+          # fresh base image, never reusing layers cached on the persistent runner.
+          docker build --no-cache --pull --label org.opencontainers.image.revision=${{ github.sha }} -t testlink-mcp:build .
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "Pushing $tag"
+            docker tag testlink-mcp:build "$tag"
+            docker push "$tag"
+          done
