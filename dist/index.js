@@ -309,16 +309,24 @@ class TestLinkAPI {
             buildid: parseInt(buildId)
         }));
     }
-    async getTestExecutions(planId, buildId) {
+    async getTestExecutions(planId, testCaseId, buildId) {
         validateSuiteId(planId); // Using suite validation for plan ID
+        validateTestCaseId(testCaseId);
         if (buildId) {
             validateSuiteId(buildId);
         }
         const params = { testplanid: parseInt(planId) };
+        // getLastExecutionResult requires a test case id (external PREFIX-N or numeric)
+        if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
+            params.testcaseexternalid = testCaseId;
+        }
+        else {
+            params.testcaseid = parseTestCaseId(testCaseId);
+        }
         if (buildId) {
             params.buildid = parseInt(buildId);
         }
-        return this.handleAPICall(() => this.client.getAllExecutionsResults(params));
+        return this.handleAPICall(() => this.client.getLastExecutionResult(params));
     }
     async createTestExecution(data) {
         if (!data || typeof data !== 'object') {
@@ -331,7 +339,6 @@ class TestLinkAPI {
         validateSuiteId(data.plan_id);
         validateSuiteId(data.build_id);
         const executionParams = {
-            testcaseid: parseTestCaseId(data.test_case_id),
             testplanid: parseInt(data.plan_id),
             buildid: parseInt(data.build_id),
             status: data.status,
@@ -339,6 +346,13 @@ class TestLinkAPI {
             platformid: data.platform_id ? data.platform_id : undefined,
             steps: data.steps || []
         };
+        // Pass external PREFIX-N as testcaseexternalid; numeric as internal testcaseid
+        if (/^[A-Za-z0-9]+-\d+$/.test(data.test_case_id)) {
+            executionParams.testcaseexternalid = data.test_case_id;
+        }
+        else {
+            executionParams.testcaseid = parseTestCaseId(data.test_case_id);
+        }
         return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
     }
     async getRequirements(projectId) {
@@ -676,7 +690,7 @@ const tools = [
     },
     {
         name: 'read_test_execution',
-        description: 'Get test execution details',
+        description: 'Get the last execution result for a test case in a test plan',
         inputSchema: {
             type: 'object',
             properties: {
@@ -684,12 +698,16 @@ const tools = [
                     type: 'string',
                     description: 'The test plan ID'
                 },
+                test_case_id: {
+                    type: 'string',
+                    description: 'The test case ID (numeric or external PREFIX-123)'
+                },
                 build_id: {
                     type: 'string',
                     description: 'The build ID (optional)'
                 }
             },
-            required: ['plan_id']
+            required: ['plan_id', 'test_case_id']
         }
     },
     {
@@ -827,7 +845,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'read_test_execution': {
-                const result = await testlinkAPI.getTestExecutions(args.plan_id, args.build_id);
+                const result = await testlinkAPI.getTestExecutions(args.plan_id, args.test_case_id, args.build_id);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'create_test_execution': {

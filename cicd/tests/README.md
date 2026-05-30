@@ -37,7 +37,7 @@ s4  TEST PLAN          TC-S4-001 create_test_plan (reuse-or-create) + add case
 s5  BUILD MGMT         TC-S5-001 create_build (reuse-or-create, left OPEN) + list_builds
         │                → publishes build_id
         ▼
-s6  EXECUTION          TC-S6-001 create_test_execution (pass result)
+s6  EXECUTION          TC-S6-001 create_test_execution + read_test_execution
         ▼
 s7  REQUIREMENTS       TC-S7-001 list_requirements
         │              TC-S7-003 TEARDOWN: close build → delete case (verified
@@ -86,8 +86,7 @@ Stages publish IDs to small files under a shared scratch dir; later stages read 
 /tmp/tl-flow/project_name      # used by create_test_plan (keys plans by NAME)
 /tmp/tl-flow/prefix            # e.g. MFT
 /tmp/tl-flow/suite_id
-/tmp/tl-flow/case_ext_id       # MFT-N — used by read/update/delete/add-to-plan
-/tmp/tl-flow/case_internal_id  # numeric — used by create_test_execution (see gaps)
+/tmp/tl-flow/case_ext_id       # MFT-N — used by read/update/delete/add-to-plan/execution
 /tmp/tl-flow/plan_id
 /tmp/tl-flow/build_id
 ```
@@ -100,7 +99,7 @@ root, so use the full `cicd/tests/...` path):
 command: |
   mkdir -p /tmp/tl-flow
   RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_case "$PAYLOAD" 2>/dev/null)
-  echo "$RESULT" | python3 -c "import sys,json; a=json.loads(json.load(sys.stdin)['content'][0]['text'])[0]['additionalInfo']; open('/tmp/tl-flow/case_internal_id','w').write(str(a['id'])); open('/tmp/tl-flow/case_ext_id','w').write(open('/tmp/tl-flow/prefix').read().strip()+'-'+str(a['external_id']))"
+  echo "$RESULT" | python3 -c "import sys,json; a=json.loads(json.load(sys.stdin)['content'][0]['text'])[0]['additionalInfo']; open('/tmp/tl-flow/case_ext_id','w').write(open('/tmp/tl-flow/prefix').read().strip()+'-'+str(a['external_id']))"
 # consumer (TC-S4-001 add-to-plan)
 command: |
   CASE=$(cat /tmp/tl-flow/case_ext_id)
@@ -169,11 +168,6 @@ npx tsx src/cli.ts list                       # list all tests
 
 ## Known gaps (tracked in #60)
 
-- **`read_test_execution`** — calls `getAllExecutionsResults` without the required
-  `testcaseid`, so it errors. Not exercised; re-enable in `TC-S6-001` once fixed.
-- **`create_test_execution`** — maps `test_case_id` straight to the internal
-  `testcaseid` (no external `PREFIX-N` resolution), so the flow feeds it
-  `case_internal_id`.
 - **`get_requirement`** (`TC-S7-002`, disabled) — no `create_requirement` tool to
   provision a requirement fixture.
 - **No `delete_test_suite` tool** — teardown can't delete the suite; provisioning is
