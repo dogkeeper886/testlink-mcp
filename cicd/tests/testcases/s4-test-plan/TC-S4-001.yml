@@ -9,16 +9,20 @@ dependencies: [TC-S2-002]
 # the flow case to it. Publishes plan_id for s5/s6/teardown.
 
 steps:
-  - name: "Create a test plan"
+  - name: "Create or reuse the flow test plan (idempotent)"
     command: |
-      PNAME=$(cat /tmp/tl-flow/project_name); CASE=$(cat /tmp/tl-flow/case_ext_id)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan "{\"data\":{\"project_id\":\"$PNAME\",\"name\":\"Flow Plan for $CASE\",\"notes\":\"flow\"}}" 2>/dev/null)
-      PLAN=$(echo "$RESULT" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); o=d[0] if isinstance(d,list) else d; print(o.get('id') or o['additionalInfo']['id'])")
+      PNAME=$(cat /tmp/tl-flow/project_name); PID=$(cat /tmp/tl-flow/project_id)
+      PLANS=$(npx tsx cicd/tests/src/mcp-client.ts list_test_plans "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      PLAN=$(echo "$PLANS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[p for p in d if p.get('name')=='Flow Plan']; print(m[0]['id'] if m else '')")
+      if [ -z "$PLAN" ]; then
+        RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_plan "{\"data\":{\"project_id\":\"$PNAME\",\"name\":\"Flow Plan\",\"notes\":\"flow\"}}" 2>/dev/null)
+        PLAN=$(echo "$RESULT" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); o=d[0] if isinstance(d,list) else d; print(o.get('id') or o['additionalInfo']['id'])")
+      fi
       echo "$PLAN" > /tmp/tl-flow/plan_id
-      echo "PLAN_CREATED=$PLAN"
+      echo "PLAN_READY=$PLAN"
     timeout: 20000
     expectPatterns:
-      - "PLAN_CREATED=[0-9]+"
+      - "PLAN_READY=[0-9]+"
 
   - name: "Add the flow case to the plan"
     command: |
