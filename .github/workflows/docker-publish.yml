@@ -55,7 +55,9 @@ jobs:
 
       - name: Build and push (uses the runner's existing Docker login)
         run: |
-          docker build --label org.opencontainers.image.revision=${{ github.sha }} -t testlink-mcp:build .
+          # --no-cache --pull: release builds must come from current source and a
+          # fresh base image, never reusing layers cached on the persistent runner.
+          docker build --no-cache --pull --label org.opencontainers.image.revision=${{ github.sha }} -t testlink-mcp:build .
           echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
             [ -z "$tag" ] && continue
             echo "Pushing $tag"
