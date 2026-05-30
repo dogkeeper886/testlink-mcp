@@ -505,7 +505,7 @@ class TestLinkAPI {
 const server = new Server(
   {
     name: 'testlink-mcp-server',
-    version: '1.0.0',
+    version: '1.3.0',
   },
   {
     capabilities: {
