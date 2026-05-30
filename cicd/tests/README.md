@@ -15,6 +15,9 @@ small set of fixtures (project → suite → case → plan → build → executi
 **created once upstream and threaded downstream** through the dependency chain.
 Tests do not hardcode instance IDs, and they do not each re-bootstrap their own
 data — they consume what earlier stages produced and clean it up at the end.
+Every fixture is connected: the requirement covers the case, the case lives in
+the suite and the plan, the build belongs to the plan, the execution records the
+case in the build. No stage is an island.
 
 This is why the suites are numbered: the number is the position in the flow.
 
@@ -41,6 +44,7 @@ s6  EXECUTION          TC-S6-001 create_test_execution + read_test_execution
         ▼
 s7  REQUIREMENTS       TC-S7-001 list_requirements
         │              TC-S7-002 create req-spec + requirement → get_requirement
+        │                        → link requirement to the flow CASE (coverage)
         │              TC-S7-003 TEARDOWN: close build → delete case (verified
         ▼                        gone) → delete plan → delete req-spec → delete suite
 ```

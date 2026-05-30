@@ -420,6 +420,23 @@ class TestLinkAPI {
             reqspecid: parseInt(reqSpecId)
         }));
     }
+    async assignRequirements(data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Assignment data must be an object');
+        }
+        if (!data.test_case_id || !data.project_id || !data.reqspec_id || !data.requirement_ids) {
+            throw new Error('Missing required fields: test_case_id, project_id, reqspec_id, requirement_ids');
+        }
+        validateTestCaseId(data.test_case_id);
+        validateProjectId(data.project_id);
+        validateSuiteId(data.reqspec_id);
+        const reqs = (Array.isArray(data.requirement_ids) ? data.requirement_ids : [data.requirement_ids]).map((r) => parseInt(r));
+        return this.handleAPICall(() => this.client._performRequest('assignRequirements', {
+            testcaseexternalid: data.test_case_id,
+            testprojectid: parseInt(data.project_id),
+            requirements: [{ req_spec: parseInt(data.reqspec_id), requirements: reqs }]
+        }));
+    }
 }
 const server = new Server({
     name: 'testlink-mcp-server',
@@ -900,6 +917,27 @@ const tools = [
             },
             required: ['reqspec_id']
         }
+    },
+    {
+        name: 'assign_requirements',
+        description: 'Link requirements to a test case (requirement coverage)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                data: {
+                    type: 'object',
+                    description: 'Requirement coverage assignment',
+                    properties: {
+                        test_case_id: { type: 'string', description: 'Test case external ID (PREFIX-123)' },
+                        project_id: { type: 'string', description: 'Test project ID' },
+                        reqspec_id: { type: 'string', description: 'Requirement specification ID' },
+                        requirement_ids: { type: 'array', description: 'Requirement IDs to assign', items: { type: 'string' } }
+                    },
+                    required: ['test_case_id', 'project_id', 'reqspec_id', 'requirement_ids']
+                }
+            },
+            required: ['data']
+        }
     }
 ];
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -1012,6 +1050,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }
             case 'delete_requirement_specification': {
                 const result = await testlinkAPI.deleteRequirementSpecification(args.reqspec_id);
+                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+            }
+            case 'assign_requirements': {
+                const result = await testlinkAPI.assignRequirements(args.data);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             default:
