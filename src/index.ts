@@ -426,6 +426,80 @@ class TestLinkAPI {
     }));
   }
 
+  async deleteTestSuite(suiteId: string) {
+    validateSuiteId(suiteId);
+    // testlink-xmlrpc has no typed deleteTestSuite wrapper; use the dispatcher.
+    return this.handleAPICall(() => (this.client as any)._performRequest('deleteTestSuite', {
+      testsuiteid: parseInt(suiteId)
+    }));
+  }
+
+  async getRequirementSpecifications(projectId: string) {
+    validateProjectId(projectId);
+    return this.handleAPICall(() => (this.client as any)._performRequest('getRequirementSpecificationsForTestProject', {
+      testprojectid: parseInt(projectId)
+    }));
+  }
+
+  async createRequirementSpecification(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Requirement spec data must be an object');
+    }
+    if (!data.project_id || !data.doc_id || !data.title) {
+      throw new Error('Missing required fields: project_id, doc_id, title');
+    }
+    validateProjectId(data.project_id);
+    return this.handleAPICall(() => (this.client as any)._performRequest('createRequirementSpecification', {
+      testprojectid: parseInt(data.project_id),
+      requirementdocid: data.doc_id,
+      title: data.title,
+      scope: data.scope || ''
+    }));
+  }
+
+  async createRequirement(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Requirement data must be an object');
+    }
+    if (!data.project_id || !data.reqspec_id || !data.doc_id || !data.title) {
+      throw new Error('Missing required fields: project_id, reqspec_id, doc_id, title');
+    }
+    validateProjectId(data.project_id);
+    validateSuiteId(data.reqspec_id);
+    return this.handleAPICall(() => (this.client as any)._performRequest('createRequirement', {
+      testprojectid: parseInt(data.project_id),
+      reqspecid: parseInt(data.reqspec_id),
+      requirementdocid: data.doc_id,
+      title: data.title,
+      scope: data.scope || ''
+    }));
+  }
+
+  async deleteRequirementSpecification(reqSpecId: string) {
+    validateSuiteId(reqSpecId);
+    return this.handleAPICall(() => (this.client as any)._performRequest('deleteRequirementSpecification', {
+      reqspecid: parseInt(reqSpecId)
+    }));
+  }
+
+  async assignRequirements(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Assignment data must be an object');
+    }
+    if (!data.test_case_id || !data.project_id || !data.reqspec_id || !data.requirement_ids) {
+      throw new Error('Missing required fields: test_case_id, project_id, reqspec_id, requirement_ids');
+    }
+    validateTestCaseId(data.test_case_id);
+    validateProjectId(data.project_id);
+    validateSuiteId(data.reqspec_id);
+    const reqs = (Array.isArray(data.requirement_ids) ? data.requirement_ids : [data.requirement_ids]).map((r: any) => parseInt(r));
+    return this.handleAPICall(() => (this.client as any)._performRequest('assignRequirements', {
+      testcaseexternalid: data.test_case_id,
+      testprojectid: parseInt(data.project_id),
+      requirements: [{ req_spec: parseInt(data.reqspec_id), requirements: reqs }]
+    }));
+  }
+
 }
 
 const server = new Server(
@@ -827,6 +901,112 @@ const tools: Tool[] = [
       },
       required: ['requirement_id', 'project_id']
     }
+  },
+  {
+    name: 'delete_test_suite',
+    description: 'Delete a test suite (and its contents) from TestLink',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        suite_id: {
+          type: 'string',
+          description: 'The test suite ID to delete'
+        }
+      },
+      required: ['suite_id']
+    }
+  },
+  {
+    name: 'list_requirement_specifications',
+    description: 'List requirement specifications for a test project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The test project ID'
+        }
+      },
+      required: ['project_id']
+    }
+  },
+  {
+    name: 'create_requirement_specification',
+    description: 'Create a requirement specification in a project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Requirement specification data',
+          properties: {
+            project_id: { type: 'string', description: 'Test project ID' },
+            doc_id: { type: 'string', description: 'Unique document ID within the project' },
+            title: { type: 'string', description: 'Specification title' },
+            scope: { type: 'string', description: 'Free-text description (optional)' }
+          },
+          required: ['project_id', 'doc_id', 'title']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'create_requirement',
+    description: 'Create a requirement inside a requirement specification',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Requirement data',
+          properties: {
+            project_id: { type: 'string', description: 'Test project ID' },
+            reqspec_id: { type: 'string', description: 'Parent requirement specification ID' },
+            doc_id: { type: 'string', description: 'Unique document ID within the project' },
+            title: { type: 'string', description: 'Requirement title' },
+            scope: { type: 'string', description: 'Free-text description (optional)' }
+          },
+          required: ['project_id', 'reqspec_id', 'doc_id', 'title']
+        }
+      },
+      required: ['data']
+    }
+  },
+  {
+    name: 'delete_requirement_specification',
+    description: 'Delete a requirement specification (and its requirements)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reqspec_id: {
+          type: 'string',
+          description: 'The requirement specification ID to delete'
+        }
+      },
+      required: ['reqspec_id']
+    }
+  },
+  {
+    name: 'assign_requirements',
+    description: 'Link requirements to a test case (requirement coverage)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Requirement coverage assignment',
+          properties: {
+            test_case_id: { type: 'string', description: 'Test case external ID (PREFIX-123)' },
+            project_id: { type: 'string', description: 'Test project ID' },
+            reqspec_id: { type: 'string', description: 'Requirement specification ID' },
+            requirement_ids: { type: 'array', description: 'Requirement IDs to assign', items: { type: 'string' } }
+          },
+          required: ['test_case_id', 'project_id', 'reqspec_id', 'requirement_ids']
+        }
+      },
+      required: ['data']
+    }
   }
 ];
 
@@ -960,6 +1140,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_requirement': {
         return { content: [{ type: 'text', text: JSON.stringify(await testlinkAPI.getRequirement(args.requirement_id as string, args.project_id as string), null, 2) }] };
+      }
+
+      case 'delete_test_suite': {
+        const result = await testlinkAPI.deleteTestSuite(args.suite_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'list_requirement_specifications': {
+        const result = await testlinkAPI.getRequirementSpecifications(args.project_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_requirement_specification': {
+        const result = await testlinkAPI.createRequirementSpecification(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_requirement': {
+        const result = await testlinkAPI.createRequirement(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_requirement_specification': {
+        const result = await testlinkAPI.deleteRequirementSpecification(args.reqspec_id as string);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'assign_requirements': {
+        const result = await testlinkAPI.assignRequirements(args.data);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
       default:

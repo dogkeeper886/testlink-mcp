@@ -15,6 +15,9 @@ small set of fixtures (project → suite → case → plan → build → executi
 **created once upstream and threaded downstream** through the dependency chain.
 Tests do not hardcode instance IDs, and they do not each re-bootstrap their own
 data — they consume what earlier stages produced and clean it up at the end.
+Every fixture is connected: the requirement covers the case, the case lives in
+the suite and the plan, the build belongs to the plan, the execution records the
+case in the build. No stage is an island.
 
 This is why the suites are numbered: the number is the position in the flow.
 
@@ -40,8 +43,10 @@ s5  BUILD MGMT         TC-S5-001 create_build (reuse-or-create, left OPEN) + lis
 s6  EXECUTION          TC-S6-001 create_test_execution + read_test_execution
         ▼
 s7  REQUIREMENTS       TC-S7-001 list_requirements
+        │              TC-S7-002 create req-spec + requirement → get_requirement
+        │                        → link requirement to the flow CASE (coverage)
         │              TC-S7-003 TEARDOWN: close build → delete case (verified
-        ▼                        gone) → delete plan
+        ▼                        gone) → delete plan → delete req-spec → delete suite
 ```
 
 > **CRUD is embedded in the flow, not isolated in one test.** Create lands in the
@@ -70,6 +75,8 @@ runtime and threaded, never hardcoded.
 | Case    | `Flow Case` | author `admin` (the built-in default user) |
 | Plan    | `Flow Plan` | idempotent (reuse-or-create) |
 | Build   | `Flow Build` | idempotent, left open for s6 |
+| Req spec | `Flow Req Spec` (doc `FLOW-RS`) | idempotent (reuse-or-create) |
+| Requirement | `Flow Requirement` (doc `FLOW-REQ`) | idempotent; inside the spec |
 
 Project creation is **not** an MCP tool, so the project fixture is provisioned
 out-of-band via `flow-provision.ts` (uses the `testlink-xmlrpc` client directly).
@@ -89,6 +96,8 @@ Stages publish IDs to small files under a shared scratch dir; later stages read 
 /tmp/tl-flow/case_ext_id       # MFT-N — used by read/update/delete/add-to-plan/execution
 /tmp/tl-flow/plan_id
 /tmp/tl-flow/build_id
+/tmp/tl-flow/reqspec_id
+/tmp/tl-flow/requirement_id
 ```
 
 A producing step writes the ID; consuming steps read it (steps run from the project
@@ -166,9 +175,10 @@ npx tsx src/cli.ts list                       # list all tests
 
 ---
 
-## Known gaps (tracked in #60)
+## Coverage
 
-- **`get_requirement`** (`TC-S7-002`, disabled) — no `create_requirement` tool to
-  provision a requirement fixture.
-- **No `delete_test_suite` tool** — teardown can't delete the suite; provisioning is
-  idempotent so it's reused rather than accumulated.
+The full flow (17 tests) exercises the complete tool surface end to end and tears
+down every fixture it creates (case, plan, build, requirement spec, suite),
+leaving only the empty project for the next run. The earlier gaps —
+`read_test_execution`, `create_test_execution` external IDs, self-contained
+`get_requirement`, and `delete_test_suite` — were all addressed in #60.

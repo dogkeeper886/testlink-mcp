@@ -113,7 +113,7 @@ npm run dev
 
 ## Available MCP Tools
 
-**Total: 22 MCP Tools** organized by functionality:
+**Total: 27 MCP Tools** organized by functionality:
 
 ### Test Case Management (4 tools)
 - **read_test_case**: Fetch complete test case data
@@ -125,7 +125,7 @@ npm run dev
 - **delete_test_case**: Remove test case permanently
   - Parameters: `test_case_id`
 
-### Test Suite Management (4 tools)
+### Test Suite Management (5 tools)
 - **list_test_suites**: Get test suites for a project
   - Parameters: `project_id`
 - **list_test_cases_in_suite**: Get all test cases in a suite
@@ -134,6 +134,8 @@ npm run dev
   - Parameters: `project_id`, `suite_name`, `details` (optional), `parent_id` (optional)
 - **update_test_suite**: Update test suite properties
   - Parameters: `suite_id`, `project_id`, `data`
+- **delete_test_suite**: Delete a test suite and its contents
+  - Parameters: `suite_id`
 
 ### Test Plan Management (5 tools)
 - **list_test_plans**: List all test plans for a project
@@ -156,16 +158,26 @@ npm run dev
   - Parameters: `build_id`
 
 ### Test Execution Management (2 tools)
-- **read_test_execution**: Get test execution details
-  - Parameters: `plan_id`, `build_id` (optional)
+- **read_test_execution**: Get the last execution result for a test case in a plan
+  - Parameters: `plan_id`, `test_case_id`, `build_id` (optional)
 - **create_test_execution**: Record test execution result
   - Parameters: `data` (requires: test_case_id, plan_id, build_id, status)
 
-### Requirement Management (2 tools)
+### Requirement Management (7 tools)
 - **list_requirements**: Get all requirements for a project
   - Parameters: `project_id`
 - **get_requirement**: Get detailed information about a specific requirement
   - Parameters: `requirement_id`, `project_id`
+- **list_requirement_specifications**: List requirement specifications for a project
+  - Parameters: `project_id`
+- **create_requirement_specification**: Create a requirement specification
+  - Parameters: `data` (requires: project_id, doc_id, title)
+- **create_requirement**: Create a requirement inside a specification
+  - Parameters: `data` (requires: project_id, reqspec_id, doc_id, title)
+- **delete_requirement_specification**: Delete a specification and its requirements
+  - Parameters: `reqspec_id`
+- **assign_requirements**: Link requirements to a test case (coverage)
+  - Parameters: `data` (requires: test_case_id, project_id, reqspec_id, requirement_ids)
 
 ### Project Management (1 tool)
 - **list_projects**: Get all test projects

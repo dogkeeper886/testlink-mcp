@@ -1,0 +1,64 @@
+id: TC-S7-002
+name: "Flow: requirement create + get_requirement"
+suite: s7-requirements
+priority: 3
+timeout: 40000
+dependencies: [TC-S2-002]
+
+# Requirement coverage, woven into the flow: provision a req-spec + requirement
+# (idempotent, stable doc ids), read the requirement back, then LINK it to the
+# flow test case so the requirement is part of the connected cycle
+# (requirement → covers → case → plan → build → execution), not an island.
+# The req-spec is removed in teardown (cascade-deletes the requirement).
+
+steps:
+  - name: "Create or reuse a requirement specification (idempotent)"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id)
+      SPECS=$(npx tsx cicd/tests/src/mcp-client.ts list_requirement_specifications "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      RS=$(echo "$SPECS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[s for s in d if s.get('doc_id')=='FLOW-RS']; print(m[0]['id'] if m else '')")
+      if [ -z "$RS" ]; then
+        RS=$(npx tsx cicd/tests/src/mcp-client.ts create_requirement_specification "{\"data\":{\"project_id\":\"$PID\",\"doc_id\":\"FLOW-RS\",\"title\":\"Flow Req Spec\",\"scope\":\"flow\"}}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); o=d[0] if isinstance(d,list) else d; print(o['id'])")
+      fi
+      echo "$RS" > /tmp/tl-flow/reqspec_id
+      echo "REQSPEC_READY=$RS"
+    timeout: 20000
+    expectPatterns:
+      - "REQSPEC_READY=[0-9]+"
+
+  - name: "Create or reuse a requirement (idempotent)"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); RS=$(cat /tmp/tl-flow/reqspec_id)
+      REQS=$(npx tsx cicd/tests/src/mcp-client.ts list_requirements "{\"project_id\":\"$PID\"}" 2>/dev/null)
+      RQ=$(echo "$REQS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[r for r in d if r.get('req_doc_id')=='FLOW-REQ']; print(m[0]['id'] if m else '')")
+      if [ -z "$RQ" ]; then
+        RQ=$(npx tsx cicd/tests/src/mcp-client.ts create_requirement "{\"data\":{\"project_id\":\"$PID\",\"reqspec_id\":\"$RS\",\"doc_id\":\"FLOW-REQ\",\"title\":\"Flow Requirement\",\"scope\":\"flow\"}}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); o=d[0] if isinstance(d,list) else d; print(o['id'])")
+      fi
+      echo "$RQ" > /tmp/tl-flow/requirement_id
+      echo "REQUIREMENT_READY=$RQ"
+    timeout: 20000
+    expectPatterns:
+      - "REQUIREMENT_READY=[0-9]+"
+
+  - name: "Get the requirement and confirm its fields"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); RQ=$(cat /tmp/tl-flow/requirement_id)
+      npx tsx cicd/tests/src/mcp-client.ts get_requirement "{\"requirement_id\":\"$RQ\",\"project_id\":\"$PID\"}" 2>/dev/null | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'get_requirement errored'; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('req_doc_id')=='FLOW-REQ','wrong requirement'; print('GET_REQ_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "GET_REQ_OK"
+
+  - name: "Link the requirement to the flow test case (coverage)"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); CASE=$(cat /tmp/tl-flow/case_ext_id); RS=$(cat /tmp/tl-flow/reqspec_id); RQ=$(cat /tmp/tl-flow/requirement_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts assign_requirements "{\"data\":{\"test_case_id\":\"$CASE\",\"project_id\":\"$PID\",\"reqspec_id\":\"$RS\",\"requirement_ids\":[\"$RQ\"]}}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'assign_requirements errored'; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success'; print('COVERAGE_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "COVERAGE_OK"
+
+criteria: |
+  A requirement is provisioned (spec + requirement, idempotent), read back via
+  get_requirement, and linked to the flow test case (coverage) so it joins the
+  case → plan → build → execution cycle rather than standing alone.
+goal: "Create, read, and link a requirement via the MCP requirement tools"
