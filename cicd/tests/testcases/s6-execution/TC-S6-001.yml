@@ -1,32 +1,32 @@
 id: TC-S6-001
-name: "Flow: create_test_execution"
+name: "Flow: create_test_execution + read_test_execution"
 suite: s6-execution
 priority: 2
 timeout: 30000
 dependencies: [TC-S5-001]
 
-# Records a pass result for the flow case in the open build. Re-enables the
-# previously disabled execution coverage.
-#
-# NOTE: read_test_execution is NOT exercised here — it calls
-# getAllExecutionsResults with only plan+build, but TestLink requires a
-# testcaseid/testcaseexternalid, so the tool errors as shipped. Tracked
-# separately as an execution-tools bug; covered here once fixed.
-# create_test_execution is given the INTERNAL case id, because the tool maps
-# test_case_id straight to the internal testcaseid (it does not resolve an
-# external PREFIX-N) — also flagged as a separate concern.
+# Records a pass result for the flow case in the open build, then reads it back.
 
 steps:
   - name: "Record a pass execution for the flow case"
     command: |
-      CASE=$(cat /tmp/tl-flow/case_internal_id); PLAN=$(cat /tmp/tl-flow/plan_id); BUILD=$(cat /tmp/tl-flow/build_id)
+      CASE=$(cat /tmp/tl-flow/case_ext_id); PLAN=$(cat /tmp/tl-flow/plan_id); BUILD=$(cat /tmp/tl-flow/build_id)
       RESULT=$(npx tsx cicd/tests/src/mcp-client.ts create_test_execution "{\"data\":{\"test_case_id\":\"$CASE\",\"plan_id\":\"$PLAN\",\"build_id\":\"$BUILD\",\"status\":\"p\",\"notes\":\"flow pass\"}}" 2>/dev/null)
       echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'execution record errored'; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('EXEC_RECORDED_OK')"
     timeout: 20000
     expectPatterns:
       - "EXEC_RECORDED_OK"
 
+  - name: "Read back the execution and confirm the pass result"
+    command: |
+      CASE=$(cat /tmp/tl-flow/case_ext_id); PLAN=$(cat /tmp/tl-flow/plan_id); BUILD=$(cat /tmp/tl-flow/build_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts read_test_execution "{\"plan_id\":\"$PLAN\",\"test_case_id\":\"$CASE\",\"build_id\":\"$BUILD\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'read execution errored'; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert str(o.get('status'))=='p','expected pass status'; print('EXEC_READ_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "EXEC_READ_OK"
+
 criteria: |
-  create_test_execution records a pass result for the flow case in the build.
-  Closes the create-side execution coverage gap.
-goal: "Record an execution via the MCP create_test_execution tool"
+  create_test_execution records a pass result for the flow case (by external
+  id), and read_test_execution returns it. Full execution coverage.
+goal: "Record and read an execution via the MCP execution tools"
