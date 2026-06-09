@@ -75,12 +75,6 @@ Desktop.ini
 *.swo
 *~
 
-# Claude Code specific
-.claude/*
-!.claude/commands/
-!.claude/skills/
-!.claude/rules/
-
 # Cursor specific
 .cursor/
 !.cursor/commands/
