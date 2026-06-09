@@ -79,6 +79,7 @@ Desktop.ini
 .claude/*
 !.claude/commands/
 !.claude/skills/
+!.claude/rules/
 
 # Cursor specific
 .cursor/
