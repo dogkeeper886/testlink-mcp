@@ -170,11 +170,31 @@ class TestLinkAPI {
     async getTestProjects() {
         return this.handleAPICall(() => this.client.getProjects());
     }
-    async getTestSuites(projectId) {
+    async getTestSuites(projectId, parentSuiteId) {
         validateProjectId(projectId);
-        return this.handleAPICall(() => this.client.getFirstLevelTestSuitesForTestProject({
-            testprojectid: projectId
+        if (parentSuiteId) {
+            validateSuiteId(parentSuiteId);
+        }
+        // Top-level mode: the library already returns a TestSuite[].
+        if (!parentSuiteId) {
+            return this.handleAPICall(() => this.client.getFirstLevelTestSuitesForTestProject({
+                testprojectid: projectId
+            }));
+        }
+        // Child mode: getTestSuitesForTestSuite returns a keyed object
+        // ({ <id>: TestSuite, ... }) for multiple children, a single TestSuite
+        // object for exactly one child, and empty for none. Normalize all to a
+        // TestSuite[] so the return shape matches top-level mode.
+        const children = await this.handleAPICall(() => this.client.getTestSuitesForTestSuite({
+            testsuiteid: parseInt(parentSuiteId)
         }));
+        if (!children || typeof children !== 'object') {
+            return [];
+        }
+        if ('id' in children) { // single-child form: object IS a TestSuite
+            return [children];
+        }
+        return Object.values(children); // multi-child form: map keyed by suite id
     }
     async getTestSuiteByID(suiteId) {
         validateSuiteId(suiteId);
@@ -540,13 +560,17 @@ const tools = [
     },
     {
         name: 'list_test_suites',
-        description: 'List test suites for a project',
+        description: 'List test suites for a project. Without parent_suite_id, returns top-level (first-level) suites. With parent_suite_id, returns the immediate child suites of that parent (single level, no recursion).',
         inputSchema: {
             type: 'object',
             properties: {
                 project_id: {
                     type: 'string',
                     description: 'The test project ID'
+                },
+                parent_suite_id: {
+                    type: 'string',
+                    description: 'Optional. The ID of a parent test suite. When provided, returns only the immediate child suites of this suite instead of the project top-level suites. This is a SUITE ID, not a project ID — do not pass it as project_id.'
                 }
             },
             required: ['project_id']
@@ -971,7 +995,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'list_test_suites': {
-                const result = await testlinkAPI.getTestSuites(args.project_id);
+                const result = await testlinkAPI.getTestSuites(args.project_id, args.parent_suite_id);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'list_test_cases_in_suite': {

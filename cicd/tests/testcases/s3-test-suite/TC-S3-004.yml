@@ -1,0 +1,44 @@
+id: TC-S3-004
+name: "Flow: list child suites via parent_suite_id"
+suite: s3-test-suite
+priority: 5
+timeout: 30000
+dependencies: [TC-S2-001]
+
+steps:
+  - name: "Ensure a child suite under the flow suite (idempotent via MCP)"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); SID=$(cat /tmp/tl-flow/suite_id)
+      KIDS=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$PID\",\"parent_suite_id\":\"$SID\"}" 2>/dev/null)
+      CID=$(echo "$KIDS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[s for s in d if s.get('name')=='Flow Child Suite']; print(m[0]['id'] if m else '')")
+      if [ -z "$CID" ]; then
+        CS=$(npx tsx cicd/tests/src/mcp-client.ts create_test_suite "{\"project_id\":\"$PID\",\"suite_name\":\"Flow Child Suite\",\"details\":\"flow child fixture\",\"parent_id\":\"$SID\"}" 2>/dev/null)
+        CID=$(echo "$CS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); s=d[0] if isinstance(d,list) else d; print(s['id'])")
+      fi
+      echo "$CID" > /tmp/tl-flow/child_suite_id
+      [ -n "$CID" ] && echo "PROVISION_CHILD_OK child=$CID"
+    timeout: 20000
+    expectPatterns:
+      - "PROVISION_CHILD_OK child=[0-9]+"
+
+  - name: "List children via parent_suite_id and confirm the child is present with correct parent"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); SID=$(cat /tmp/tl-flow/suite_id)
+      npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$PID\",\"parent_suite_id\":\"$SID\"}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; cid=open('/tmp/tl-flow/child_suite_id').read().strip(); sid=open('/tmp/tl-flow/suite_id').read().strip(); m=[s for s in d if str(s.get('id'))==cid]; assert m,'child suite not listed under parent'; assert str(m[0].get('parent_id'))==sid,'child parent_id mismatch'; print('LIST_CHILD_SUITES_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "LIST_CHILD_SUITES_OK"
+
+  - name: "Confirm the child is NOT in the project top-level suite list"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id)
+      npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$PID\"}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; cid=open('/tmp/tl-flow/child_suite_id').read().strip(); assert not any(str(s.get('id'))==cid for s in d),'child suite leaked into top-level list'; print('TOPLEVEL_EXCLUDES_CHILD_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "TOPLEVEL_EXCLUDES_CHILD_OK"
+
+criteria: |
+  list_test_suites with parent_suite_id returns the immediate children of the
+  flow suite (single level), including the provisioned "Flow Child Suite" with the
+  correct parent_id, and the child does NOT appear in the project top-level list.
+goal: "List child test suites via the MCP list_test_suites parent_suite_id parameter"

@@ -5,7 +5,7 @@ priority: 9
 timeout: 60000
 # Final stage. Depends on every fixture-consuming test so it runs last and
 # does not pull data out from under them.
-dependencies: [TC-S2-003, TC-S2-004, TC-S3-001, TC-S3-002, TC-S3-003, TC-S4-002, TC-S6-001, TC-S7-001, TC-S7-002]
+dependencies: [TC-S2-003, TC-S2-004, TC-S3-001, TC-S3-002, TC-S3-003, TC-S3-004, TC-S4-002, TC-S6-001, TC-S7-001, TC-S7-002]
 
 steps:
   - name: "Close the build"
@@ -44,6 +44,15 @@ steps:
     timeout: 20000
     expectPatterns:
       - "REQSPEC_DELETED_OK"
+
+  - name: "Delete the child test suite"
+    command: |
+      CID=$(cat /tmp/tl-flow/child_suite_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_test_suite "{\"suite_id\":\"$CID\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete child test_suite errored'; print('CHILD_SUITE_DELETED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "CHILD_SUITE_DELETED_OK"
 
   - name: "Delete the test suite (now empty)"
     command: |
