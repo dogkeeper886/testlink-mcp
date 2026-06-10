@@ -5,13 +5,16 @@ Retrieve and display all test suites for a specific TestLink project.
 
 ## Agent Instructions:
 1. Extract project ID from user input
-2. Call TestLink MCP list_test_suites tool with project ID
+2. Call TestLink MCP list_test_suites tool with project ID. To list the
+   immediate children of an existing suite instead of the project's top-level
+   suites, also pass parent_suite_id (single level, no recursion).
 3. Format test suite information in a readable format
 4. Display suite details including ID, name, and description
 
 ## Expected User Input:
 User should provide:
 - Project ID (to get test suites for)
+- Optionally, a parent suite ID (to get that suite's immediate children)
 
 ## Agent Processing Steps:
 1. **Extract Project ID**: Get project ID from user input
@@ -52,12 +55,16 @@ Suite Details:
 ## MCP Tool Parameters:
 ```json
 {
-  "project_id": "string (required)"
+  "project_id": "string (required)",
+  "parent_suite_id": "string (optional)"
 }
 ```
 
 ## Required Fields:
 - project_id: String (project ID to get test suites for)
+
+## Optional Fields:
+- parent_suite_id: String (parent suite ID; returns that suite's immediate children instead of project top-level suites)
 
 ## Display Format:
 - **Table Format**: Organized table with key test suite information
@@ -83,4 +90,5 @@ Suite Details:
 - "Get all test suites for project 1404789"
 - "What test suites are available in project 1?"
 - "Display test suites for User Session project"
+- "List the child suites under suite 1475673 in project 1404789"
 ```

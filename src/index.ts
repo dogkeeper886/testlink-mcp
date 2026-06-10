@@ -214,6 +214,8 @@ class TestLinkAPI {
       testsuiteid: parseInt(parentSuiteId)
     }));
 
+    // TestLink returns "" (empty string) for no children, like getProjects —
+    // this guards that real boundary shape, not an impossible state.
     if (!children || typeof children !== 'object') {
       return [];
     }
