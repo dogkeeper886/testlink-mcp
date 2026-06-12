@@ -46,5 +46,6 @@ other project built from the template.
 
 - Created: 2026-06-12
 - Plan: #69
-- Issues: #70
-- PR: #71 (open)
+- Issues: #70 (closed)
+- PR: #71 (merged)
+- Status: COMPLETE
