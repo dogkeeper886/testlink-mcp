@@ -41,5 +41,6 @@ are no longer earning their place.
 
 - Created: 2026-06-12
 - Plan: #72
-- Issues: #73
-- PR: #74 (open)
+- Issues: #73 (closed)
+- PR: #74 (merged)
+- Status: COMPLETE
