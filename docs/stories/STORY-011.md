@@ -40,5 +40,7 @@ qa-workflow conventions.
 
 - Created: 2026-06-12
 - Plan: #75
-- Issues: #76, #77, #78
-- PR: #79 (open)
+- Issues: #76, #77, #78 (closed)
+- PR: #79 (merged)
+- Follow-up: #80 (pre-existing internal-vs-external test-case-ID bug, found during review)
+- Status: COMPLETE
