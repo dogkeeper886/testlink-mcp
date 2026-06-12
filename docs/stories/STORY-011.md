@@ -39,4 +39,4 @@ qa-workflow conventions.
 ## Status
 
 - Created: 2026-06-12
-- Issues: none
+- Plan: #75
