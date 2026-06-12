@@ -814,7 +814,7 @@ const tools = [
                     type: 'object',
                     description: 'Test execution data',
                     properties: {
-                        test_case_id: { type: 'string', description: 'Test case ID — numeric or external (PREFIX-123); auto-converted, no need to look up the numeric ID first' },
+                        test_case_id: { type: 'string', description: 'Test case ID — numeric, or external PREFIX-123 (its numeric part is used)' },
                         plan_id: { type: 'string', description: 'Test plan ID' },
                         build_id: { type: 'string', description: 'Build ID' },
                         status: { type: 'string', description: 'Execution status: p=pass, f=fail, b=block' },
