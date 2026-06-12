@@ -48,7 +48,7 @@ This ensures TestLink drives test design, not the other way around.
         │
         └─► Step 6: Report
             - Print created test cases with IDs
-            - Remind: "Use testlink_id in YAML files during /gh-implement"
+            - Remind: "Use testlink_id in YAML files during implementation"
 
 ---
 
@@ -68,7 +68,7 @@ This ensures TestLink drives test design, not the other way around.
 
 ## YAML LINKAGE
 
-When writing YAML test files during `/gh-implement`, include the `testlink_id` field:
+When writing YAML test files during implementation, include the `testlink_id` field:
 
 ```yaml
 id: TC-SUITE-001
@@ -82,7 +82,7 @@ steps:
 criteria: ...
 ```
 
-This enables `/gh-test` to report execution results back to TestLink automatically.
+This enables execution results to be reported back to TestLink automatically.
 
 ---
 
@@ -105,7 +105,7 @@ This enables `/gh-test` to report execution results back to TestLink automatical
     Added 3 cases to test plan "Integration Tests"
     Comment posted to issue #42
 
-    Next: Run /gh-implement 42 (use testlink_id in YAML files)
+    Next: implement the issue (use testlink_id in YAML files)
 
 ### Example 2: Bug fix issue
 
@@ -132,5 +132,5 @@ This enables `/gh-test` to report execution results back to TestLink automatical
 - Use descriptive names that explain the scenario, not the implementation
 - Default importance to Medium (2), use High (3) for critical/security paths
 - If no acceptance criteria in the issue, derive scenarios from the title and description
-- Do NOT create YAML test files — that happens during /gh-implement
+- Do NOT create YAML test files — that happens during implementation
 ```
