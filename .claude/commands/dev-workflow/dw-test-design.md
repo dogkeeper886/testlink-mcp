@@ -33,7 +33,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
         │   - Scan the project for existing test tooling:
         │
         │     Test Frameworks:
-        │     - cicd/tests/testcases/**/*.yml     → test-framework-template (YAML + dual-judge)
+        │     - cicd/tests/testcases/**/*.yml     → agent-workflows-runner (YAML + dual-judge)
         │     - tests/ + pytest.ini or conftest.py → pytest
         │     - __tests__/ or *.test.ts/js         → Jest
         │     - *.spec.ts/js                       → Jest / Vitest / Mocha
@@ -74,7 +74,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
         │   │  - Commit test files to the issue branch
         │   │
         │   │  Examples by framework:
-        │   │  - test-framework-template → YAML in cicd/tests/testcases/{suite}/
+        │   │  - agent-workflows-runner → YAML in cicd/tests/testcases/{suite}/
         │   │  - pytest   → Python test files in tests/
         │   │  - Jest     → *.test.ts in __tests__/ or co-located
         │   │  - Go test  → *_test.go alongside source files
@@ -88,7 +88,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
         │        - [ ] Step 2: description → expected result
         │      - Add a recommendation note:
         │        > This project has no automated test infrastructure.
-        │        > Consider adopting [test-framework-template](https://github.com/dogkeeper886/test-framework-template)
+        │        > Consider adopting [agent-workflows-runner](https://github.com/dogkeeper886/agent-workflows-runner)
         │        > for YAML-driven CI testing with dual-judge verification.
         │      - Ask the user: "Want me to create a follow-up issue for CI setup?"
         │        If yes → create issue labeled "enhancement" + "testing"
@@ -111,13 +111,13 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
 
 ---
 
-## EXAMPLE 1: Project with test-framework-template
+## EXAMPLE 1: Project with agent-workflows-runner
 
     /dw-test-design 47
 
 **Agent detects cicd/tests/testcases/ with YAML files:**
 
-    Detected: test-framework-template (YAML + dual-judge)
+    Detected: agent-workflows-runner (YAML + dual-judge)
     CI: GitHub Actions (.github/workflows/test-pipeline.yml)
     Issue #47: enhancement → Type C (changed behavior)
 
@@ -167,7 +167,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
     - [ ] Enter invalid email → shows validation error
 
     > This project has no automated test infrastructure.
-    > Consider adopting [test-framework-template](https://github.com/dogkeeper886/test-framework-template)
+    > Consider adopting [agent-workflows-runner](https://github.com/dogkeeper886/agent-workflows-runner)
     > for YAML-driven CI testing with dual-judge verification.
 
     Create follow-up issue for CI setup? [y/n]

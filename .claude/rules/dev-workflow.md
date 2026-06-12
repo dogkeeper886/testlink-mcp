@@ -1,13 +1,14 @@
 ---
 paths:
-  - "commands/dev-workflow/**/*.md"
+  - ".claude/commands/dev-workflow/**/*.md"
 ---
 
 # dev-workflow
 
 Turns a need into shipped code. A story states the **need** (a goal, not a spec); a
 **plan issue** states the agreed **approach**; task issues carry the *how* as it's worked
-out. Each producer is paired with a review — no producer ships without one.
+out. Each producer is paired with a review — the same discipline `qa-workflow` and
+`reviewing-artifacts` enforce.
 
 ## The flow
 
@@ -61,12 +62,12 @@ No producer ships without a review covering its output.
 
 The plan stage is for non-trivial stories. A one-line doc change or a single-task story
 **skips `dw-plan`** — `dw-story` hands off straight to `dw-tasks` (or a lone issue). Three
-review passes plus a plan issue on a typo is ritual, not rigor.
+review passes plus a plan issue on a typo is ritual, not rigor (see CLAUDE.md §5).
 
 ## What is reused, not rebuilt
 
-- **The story + issues** are the unit of work — a story in `docs/stories/`, its task
-  issues on GitHub.
+- **The story + issues** are shared with `qa-workflow` — one `STORY-XXX` gets both `dw-*`
+  (code) and `qw-*` (tests).
 - **GitHub issues** already hold the work; the plan is one too (the parent), so the
   approach, its review, and its history live where the tasks do — no separate plan store.
 - **CI** is the project's existing checks + human review — the merge gate, not a new pipeline.

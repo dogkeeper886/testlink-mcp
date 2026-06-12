@@ -72,6 +72,34 @@ Fits between `/dw-implement` (does the work) and `/dw-create-pr` (opens the PR):
 
 ---
 
+## EXAMPLE
+
+    /dw-review-implement 6
+
+**Agent reads the issue + the branch diff, runs the checks:**
+
+    Delivers the issue (vs "Done When"):
+    ✓ design/wireframes/ holds tokens + components.css/js + components.html
+    ✓ no RUCKUS/R1 strings; brand neutral + configurable on qa-sidebar
+    ✓ demo content target-agnostic
+    ✓ components.html renders standalone in light + dark
+
+    Surgical:
+    ✓ only design/ added + two pointer lines in code/README.md
+    ✓ no dead code / debug leftovers; no unrelated edits
+
+    Fits the project:
+    ✓ core stays target-agnostic; markdown source of truth intact
+
+**Output:**
+
+    PASS — #6 delivers the issue and stays surgical.
+    A human reviews + tests; open a PR with /dw-create-pr 6 when ready.
+
+(Illustrative — a clean implementation. Real reviews often return REVISE.)
+
+---
+
 ## API Notes
 
 - Uses `gh` to read the issue; reads the branch diff with `git` — read-mostly
