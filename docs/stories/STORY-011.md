@@ -41,3 +41,4 @@ qa-workflow conventions.
 - Created: 2026-06-12
 - Plan: #75
 - Issues: #76, #77, #78
+- PR: #79 (open)
