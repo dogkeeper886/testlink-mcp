@@ -28,8 +28,9 @@ s1  BUILD & DEPLOY     build server, validate startup, build docker image
 s2  TEST CASE          TC-S2-001 provision: ensure project + suite
         │                → publishes project_id, project_name, prefix, suite_id
         │              TC-S2-002 create_test_case
-        │                → publishes case_ext_id (MFT-N) + case_internal_id
-        │              TC-S2-003 read · TC-S2-004 update
+        │                → publishes case_ext_id (MFT-N)
+        │              TC-S2-003 read · TC-S2-004 update (external id)
+        │              TC-S2-005 update by INTERNAL id (#80 regression)
         ▼
 s3  TEST SUITE         list_test_suites · list_test_cases_in_suite · update_test_suite
         ▼
@@ -58,7 +59,7 @@ s7  REQUIREMENTS       TC-S7-001 list_requirements
 > sort), so the real ordering follows the arrows above regardless of the numeric
 > suite name.
 
-A full `cli.ts run` executes 16 tests and passes against a **fresh** TestLink
+A full `cli.ts run` executes 17 tests and passes against a **fresh** TestLink
 (only precondition: the XML-RPC API is enabled), repeatably.
 
 ---
