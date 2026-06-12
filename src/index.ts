@@ -571,12 +571,12 @@ const tools: Tool[] = [
           description: 'Test case data to update',
           properties: {
             name: { type: 'string' },
-            summary: { type: 'string' },
-            preconditions: { type: 'string' },
-            steps: { type: 'array' },
-            importance: { type: 'number' },
-            execution_type: { type: 'number' },
-            status: { type: 'number' }
+            summary: { type: 'string', description: 'HTML-formatted (e.g. <p>, <strong>, <em>, <ul><li>); escape < > & " as HTML entities' },
+            preconditions: { type: 'string', description: 'HTML-formatted, same rules as summary' },
+            steps: { type: 'array', description: 'Each step\'s actions and expected_results are HTML-formatted, same rules as summary' },
+            importance: { type: 'number', description: '1=low, 2=medium, 3=high' },
+            execution_type: { type: 'number', description: '1=manual, 2=automated' },
+            status: { type: 'number', description: '1=draft, 7=final' }
           }
         }
       },
@@ -597,12 +597,12 @@ const tools: Tool[] = [
             testsuiteid: { type: 'string', description: 'Test suite ID' },
             name: { type: 'string', description: 'Test case name' },
             authorlogin: { type: 'string', description: 'Author login' },
-            summary: { type: 'string' },
-            preconditions: { type: 'string' },
-            steps: { type: 'array' },
-            importance: { type: 'number' },
-            execution_type: { type: 'number' },
-            status: { type: 'number' }
+            summary: { type: 'string', description: 'HTML-formatted (e.g. <p>, <strong>, <em>, <ul><li>); escape < > & " as HTML entities' },
+            preconditions: { type: 'string', description: 'HTML-formatted, same rules as summary' },
+            steps: { type: 'array', description: 'Each step\'s actions and expected_results are HTML-formatted, same rules as summary' },
+            importance: { type: 'number', description: '1=low, 2=medium, 3=high' },
+            execution_type: { type: 'number', description: '1=manual, 2=automated' },
+            status: { type: 'number', description: '1=draft, 7=final' }
           },
           required: ['testprojectid', 'testsuiteid', 'name', 'authorlogin']
         }
@@ -856,7 +856,7 @@ const tools: Tool[] = [
   },
   {
     name: 'read_test_execution',
-    description: 'Get the last execution result for a test case in a test plan',
+    description: 'Get the last execution result for a test case in a test plan. Both plan_id and test_case_id are required — a plan ID alone is not enough.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -886,10 +886,10 @@ const tools: Tool[] = [
           type: 'object',
           description: 'Test execution data',
           properties: {
-            test_case_id: { type: 'string', description: 'Test case ID' },
+            test_case_id: { type: 'string', description: 'Test case ID — numeric or external (PREFIX-123); auto-converted, no need to look up the numeric ID first' },
             plan_id: { type: 'string', description: 'Test plan ID' },
             build_id: { type: 'string', description: 'Build ID' },
-            status: { type: 'string', description: 'Execution status (p/f/b)' },
+            status: { type: 'string', description: 'Execution status: p=pass, f=fail, b=block' },
             notes: { type: 'string', description: 'Execution notes' },
             platform_id: { type: 'string', description: 'Platform ID (optional)' }
           },
