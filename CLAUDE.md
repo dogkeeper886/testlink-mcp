@@ -83,19 +83,16 @@ qw-plan → qw-review-plan → qw-cases → qw-review-cases
 
 The full flow + pairing lives in `.claude/rules/qa-workflow.md`.
 
-Two review gates are external skills this toolkit does not own — invoke them by hand:
-- `code-review` (bundled): adversarial diff review. Run after `dw-implement`,
-  alongside `dw-review-implement`. Earns its cost on logic/risk; skip for pure docs.
+One review gate is an external builtin this toolkit does not own — invoke it by hand:
 - `/review` (builtin): PR overview. Run after `dw-create-pr`, before `dw-merge`.
 
-Don't wire these into the `dw-*` commands — they may not exist in every install,
+Don't wire this into the `dw-*` commands — it may not exist in every install,
 and a command that references a missing skill is a dangling pointer.
 
 **Right-size it.** A typo or a one-line doc change does not need the full chain —
-use judgment; branch + PR + merge is enough. The three review passes overlap:
-`dw-review-implement` is the always-on substance gate, `code-review` is for real
-logic or risk, `/review` is the PR summary. Running all three on a trivial diff is
-ritual, not rigor.
+use judgment; branch + PR + merge is enough. The review passes overlap:
+`dw-review-implement` is the always-on substance gate, `/review` is the PR summary.
+Running both on a trivial diff is ritual, not rigor.
 
 ## 6. Artifact & doc review discipline
 
