@@ -40,4 +40,4 @@ are no longer earning their place.
 ## Status
 
 - Created: 2026-06-12
-- Issues: none
+- Plan: #72
