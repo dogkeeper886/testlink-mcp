@@ -42,6 +42,16 @@ function validateTestCaseId(id: string): void {
   parseTestCaseId(id); // This will throw if invalid
 }
 
+// Route a test case identifier to the correct TestLink param: an external id
+// (PREFIX-123) goes to testcaseexternalid; a numeric id is the internal testcaseid.
+// TestLink's checkTestCaseIdentity accepts either — sending a numeric internal id
+// as testcaseexternalid would resolve it to the wrong case.
+function testCaseIdParam(id: string): Record<string, string> {
+  return /^[A-Za-z0-9]+-\d+$/.test(id)
+    ? { testcaseexternalid: id }
+    : { testcaseid: parseTestCaseId(id) };
+}
+
 function validateProjectId(id: string): void {
   if (!id || typeof id !== 'string') {
     throw new Error('Project ID must be a non-empty string');
@@ -115,18 +125,7 @@ class TestLinkAPI {
   async getTestCase(testCaseId: string) {
     validateTestCaseId(testCaseId);
     
-    // If it looks like an external ID (PREFIX-123), use testcaseexternalid
-    if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
-      return this.handleAPICall(() => this.client.getTestCase({ 
-        testcaseexternalid: testCaseId
-      }));
-    }
-    
-    // Otherwise use the numeric ID
-    const numericId = parseTestCaseId(testCaseId);
-    return this.handleAPICall(() => this.client.getTestCase({ 
-      testcaseid: numericId
-    }));
+    return this.handleAPICall(() => this.client.getTestCase(testCaseIdParam(testCaseId)));
   }
 
   async updateTestCase(testCaseId: string, data: any) {
@@ -136,7 +135,7 @@ class TestLinkAPI {
     }
     
     const updateParams: any = {
-      testcaseexternalid: testCaseId
+      ...testCaseIdParam(testCaseId)
     };
 
     if (data.name) updateParams.testcasename = data.name;
@@ -182,9 +181,7 @@ class TestLinkAPI {
     validateTestCaseId(testCaseId);
     // testlink-xmlrpc 3.0.0 has no typed deleteTestCase wrapper; call the
     // server's tl.deleteTestCase (real delete) via the generic dispatcher.
-    const params = /^[A-Za-z0-9]+-\d+$/.test(testCaseId)
-      ? { testcaseexternalid: testCaseId }
-      : { testcaseid: parseTestCaseId(testCaseId) };
+    const params = testCaseIdParam(testCaseId);
     return this.handleAPICall(() => (this.client as any)._performRequest('deleteTestCase', params));
   }
 
@@ -340,12 +337,12 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.addTestCaseToTestPlan({
       testprojectid: parseInt(data.testprojectid),
       testplanid: parseInt(data.testplanid),
-      testcaseexternalid: data.testcaseid,
+      ...testCaseIdParam(data.testcaseid),
       version: data.version || 1,
       platformid: data.platformid ? parseInt(data.platformid) : undefined,
       urgency: data.urgency || 2,
       overwrite: data.overwrite || false
-    }));
+    } as any));
   }
 
   async getBuilds(planId: string) {
@@ -393,11 +390,7 @@ class TestLinkAPI {
 
     const params: any = { testplanid: parseInt(planId) };
     // getLastExecutionResult requires a test case id (external PREFIX-N or numeric)
-    if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
-      params.testcaseexternalid = testCaseId;
-    } else {
-      params.testcaseid = parseTestCaseId(testCaseId);
-    }
+    Object.assign(params, testCaseIdParam(testCaseId));
     if (buildId) {
       params.buildid = parseInt(buildId);
     }
@@ -425,11 +418,7 @@ class TestLinkAPI {
       steps: data.steps || []
     };
     // Pass external PREFIX-N as testcaseexternalid; numeric as internal testcaseid
-    if (/^[A-Za-z0-9]+-\d+$/.test(data.test_case_id)) {
-      executionParams.testcaseexternalid = data.test_case_id;
-    } else {
-      executionParams.testcaseid = parseTestCaseId(data.test_case_id);
-    }
+    Object.assign(executionParams, testCaseIdParam(data.test_case_id));
 
     return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
   }
@@ -519,7 +508,7 @@ class TestLinkAPI {
     validateSuiteId(data.reqspec_id);
     const reqs = (Array.isArray(data.requirement_ids) ? data.requirement_ids : [data.requirement_ids]).map((r: any) => parseInt(r));
     return this.handleAPICall(() => (this.client as any)._performRequest('assignRequirements', {
-      testcaseexternalid: data.test_case_id,
+      ...testCaseIdParam(data.test_case_id),
       testprojectid: parseInt(data.project_id),
       requirements: [{ req_spec: parseInt(data.reqspec_id), requirements: reqs }]
     }));
