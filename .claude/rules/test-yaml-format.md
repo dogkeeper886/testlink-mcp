@@ -14,7 +14,7 @@ id: TC-[SUITE]-[NUMBER]
 testlink_id: 17                    # TestLink test case ID this maps to (this repo)
 name: Human-readable test name
 suite: build|integration|e2e      # Extensible — add custom suites in config.ts
-goal: One-line objective for LLM judge context
+goal: One-line objective for agent judge context
 priority: 1                        # Lower = runs first
 timeout: 30000                     # Milliseconds
 dependencies: [TC-SUITE-001]       # Tests that must pass first
@@ -32,7 +32,7 @@ steps:
       varName: "json.path"
 
 criteria: |
-  Human-readable criteria for LLM judge evaluation.
+  Human-readable criteria for agent judge evaluation.
 ```
 
 ## Tags
