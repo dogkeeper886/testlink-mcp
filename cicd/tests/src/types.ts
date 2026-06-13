@@ -40,9 +40,9 @@ export interface TestCase {
   dependencies: string[];
   /** Test steps to execute */
   steps: TestStep[];
-  /** Human-readable criteria for LLM judge evaluation */
+  /** Human-readable criteria for agent judge evaluation */
   criteria: string;
-  /** Short goal statement for LLM judge context (optional) */
+  /** Short goal statement for agent judge context (optional) */
   goal?: string;
   /** TestLink test case ID for traceability */
   testlink_id?: number;
