@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="250" viewBox="0 0 840 250" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="840" height="250" fill="#ffffff"/>
+  <text x="420" y="30" text-anchor="middle" font-size="19" font-weight="bold" fill="#0f172a">One connected lifecycle (s1 → s7)</text>
+  <text x="420" y="52" text-anchor="middle" font-size="12.5" fill="#64748b">Fixtures created upstream, threaded downstream, torn down — leaving a clean instance</text>
+
+  <!-- 7 stage boxes -->
+  <g font-size="13" text-anchor="middle">
+    <g fill="#eff6ff" stroke="#2563eb" stroke-width="1.5">
+      <rect x="20"  y="92" width="92" height="62" rx="8"/>
+      <rect x="138" y="92" width="92" height="62" rx="8"/>
+      <rect x="256" y="92" width="92" height="62" rx="8"/>
+      <rect x="374" y="92" width="92" height="62" rx="8"/>
+      <rect x="492" y="92" width="92" height="62" rx="8"/>
+      <rect x="610" y="92" width="92" height="62" rx="8"/>
+    </g>
+    <!-- s7 = teardown, amber -->
+    <rect x="728" y="92" width="92" height="62" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+
+    <g font-weight="bold" fill="#1e3a8a">
+      <text x="66"  y="118">s1</text><text x="184" y="118">s2</text><text x="302" y="118">s3</text>
+      <text x="420" y="118">s4</text><text x="538" y="118">s5</text><text x="656" y="118">s6</text>
+    </g>
+    <text x="774" y="118" font-weight="bold" fill="#92400e">s7</text>
+
+    <g font-size="11" fill="#475569">
+      <text x="66"  y="138">build</text><text x="184" y="138">case</text><text x="302" y="138">suite</text>
+      <text x="420" y="138">plan</text><text x="538" y="138">build</text><text x="656" y="138">exec</text>
+    </g>
+    <text x="774" y="134" font-size="10.5" fill="#b45309">reqs +</text>
+    <text x="774" y="147" font-size="10.5" fill="#b45309">teardown</text>
+  </g>
+
+  <g stroke="#475569" stroke-width="1.7" fill="none" marker-end="url(#arrow)">
+    <path d="M112 123 L136 123"/><path d="M230 123 L254 123"/><path d="M348 123 L372 123"/>
+    <path d="M466 123 L490 123"/><path d="M584 123 L608 123"/><path d="M702 123 L726 123"/>
+  </g>
+
+  <!-- teardown loop -->
+  <path d="M774 154 C 774 210, 66 210, 66 156" stroke="#d97706" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+  <text x="420" y="206" text-anchor="middle" font-size="11.5" fill="#b45309" font-weight="bold">teardown deletes every fixture it created — instance back to empty</text>
+
+  <text x="420" y="236" text-anchor="middle" font-size="11" fill="#94a3b8">Order enforced by `dependencies` (topological sort), not the suite number. Full run = 19 tests.</text>
+</svg>
