@@ -11,11 +11,6 @@ on:
         options:
           - "simple"
           - "dual"
-      judge_model:
-        description: "LLM model for judging (if dual mode)"
-        required: false
-        default: "gemma3:12b-judge"
-        type: string
       test_id:
         description: "Run a single test by ID (e.g., TC-S1-001)"
         required: false
@@ -28,7 +23,6 @@ jobs:
     with:
       suite: s1-build-deploy
       judge_mode: ${{ inputs.judge_mode }}
-      judge_model: ${{ inputs.judge_model }}
       test_id: ${{ inputs.test_id }}
     secrets: inherit
 
