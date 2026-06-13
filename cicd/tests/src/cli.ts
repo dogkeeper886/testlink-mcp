@@ -33,9 +33,6 @@ program
   .option('-s, --suite <suite>', 'Run only tests from this suite')
   .option('-i, --id <id>', 'Run only the test with this ID')
   .option('--dry-run', 'Show what would run without executing', false)
-  .option('--llm', 'Enable LLM judging (simple judge only by default)', false)
-  .option('--judge-url <url>', 'Ollama URL for LLM judge', CONFIG.llm.defaultUrl)
-  .option('--judge-model <model>', 'Model to use for LLM judging', CONFIG.llm.defaultModel)
   .option('-o, --output-dir <dir>', 'Output directory for results')
   .option('-f, --format <format>', 'Output format (console, json)', 'console')
   .action(async (options) => {
@@ -60,9 +57,7 @@ program
       suite: options.suite,
       testId: options.id,
       dryRun: options.dryRun,
-      noLlm: !options.llm,
-      judgeUrl: options.judgeUrl,
-      judgeModel: options.judgeModel,
+      dualMode: CONFIG.llm.mode === 'dual',
       outputDir,
       outputFormat: options.format as RunConfig['outputFormat'],
       workingDir: projectRoot,
@@ -73,7 +68,7 @@ program
     process.stderr.write(`[CONFIG] Docker compose: ${dockerDir}\n`);
     process.stderr.write(`[CONFIG] Testcases: ${testcasesDir}\n`);
     process.stderr.write(`[CONFIG] Output: ${outputDir}\n`);
-    process.stderr.write(`[CONFIG] LLM Judge: ${config.noLlm ? 'disabled' : config.judgeUrl}\n`);
+    process.stderr.write(`[CONFIG] LLM Judge: ${config.dualMode ? `dual (${CONFIG.llm.baseUrl || 'Anthropic API'}, ${CONFIG.llm.model})` : 'simple only'}\n`);
 
     // Load test cases
     const loader = new TestLoader(testcasesDir);
@@ -138,19 +133,18 @@ program
 
     let llmJudgments = simpleJudgments.map((j) => ({
       ...j,
-      reason: config.noLlm ? 'LLM judge disabled' : j.reason,
+      reason: config.dualMode ? j.reason : 'LLM judge disabled (simple mode)',
     }));
 
-    if (!config.noLlm) {
+    if (config.dualMode) {
       process.stderr.write('[JUDGE] Running LLM judge...\n');
-      const llmJudge = new LLMJudge(config.judgeUrl, config.judgeModel);
+      const llmJudge = new LLMJudge();
 
       const available = await llmJudge.isAvailable();
       if (available) {
         llmJudgments = await llmJudge.judgeResults(results);
-        await llmJudge.unloadModel();
       } else {
-        process.stderr.write('[WARN] LLM judge not available, using simple judge results\n');
+        process.stderr.write('[WARN] LLM judge endpoint unreachable, falling back to simple judge results\n');
       }
     }
 

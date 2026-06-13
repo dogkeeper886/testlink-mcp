@@ -1,36 +1,50 @@
 /**
- * LLM Judge - Semantic analysis of test results using Ollama.
+ * LLM Judge - Semantic analysis of test results via the Anthropic SDK.
  *
  * Uses a language model to evaluate test execution logs against criteria.
  * Catches silent failures that exit code checking misses.
  *
- * Judges one test at a time with structured JSON prompts and Ollama JSON mode
- * for reliable parsing. Includes observability logging for debugging CI failures.
+ * Reaches its model through the standard Anthropic client, so any
+ * Anthropic-compatible endpoint (hosted or a local one) is a matter of
+ * configuration (LLM_JUDGE_URL / LLM_JUDGE_MODEL / ANTHROPIC_API_KEY), not a
+ * code change. Judges one test at a time with a structured JSON prompt.
  */
 
-import axios from 'axios';
+import Anthropic from '@anthropic-ai/sdk';
 import { TestResult, Judgment } from '../types.js';
 import { CONFIG } from '../config.js';
 
 export class LLMJudge {
-  private ollamaUrl: string;
+  private client: Anthropic;
   private model: string;
 
   constructor(
-    ollamaUrl: string = CONFIG.llm.defaultUrl,
-    model: string = CONFIG.llm.defaultModel
+    baseUrl: string | undefined = CONFIG.llm.baseUrl,
+    model: string = CONFIG.llm.model,
+    apiKey: string = CONFIG.llm.apiKey
   ) {
-    this.ollamaUrl = ollamaUrl;
+    this.client = new Anthropic({
+      apiKey,
+      baseURL: baseUrl,
+      timeout: CONFIG.llm.timeout,
+    });
     this.model = model;
   }
 
+  /**
+   * Probe the configured endpoint. Returns false on any connection/auth error
+   * so the caller can skip cleanly and fall back to the simple judge.
+   */
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.ollamaUrl}/api/tags`, {
-        timeout: 5000,
+      await this.client.messages.create({
+        model: this.model,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
       });
-      return response.status === 200;
-    } catch {
+      return true;
+    } catch (error) {
+      process.stderr.write(`  [LLM] Endpoint not reachable: ${error}\n`);
       return false;
     }
   }
@@ -83,12 +97,12 @@ export class LLMJudge {
       steps,
       container_logs: this.truncate(r.logs, CONFIG.llm.logsLimit),
       respond: {
-        format: 'Respond with a single JSON object',
+        format: 'Respond with a single JSON object and nothing else',
         fields: {
           testId: r.testCase.id,
-          pass: 'boolean — true or false',
-          reason: 'Brief explanation referencing each criterion',
-          evidence: 'Optional — quote the exact stdout/stderr/log content that supports your verdict if available',
+          pass: 'true if test meets all criteria, false otherwise',
+          reason: 'Brief explanation of your verdict',
+          evidence: 'Required if pass is false — the exact stdout content or log line that caused failure',
         },
       },
     };
@@ -105,33 +119,34 @@ export class LLMJudge {
   }
 
   /**
+   * Extract the first JSON object from a model response, tolerating prose or
+   * markdown fences around it.
+   */
+  private extractJson(text: string): string | null {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) return null;
+    return text.substring(start, end + 1);
+  }
+
+  /**
    * Judge a single test result.
    */
   private async judgeOne(result: TestResult): Promise<Judgment> {
     const prompt = this.buildPrompt(result);
     const testId = result.testCase.id;
 
-    const response = await axios.post(
-      `${this.ollamaUrl}/api/generate`,
-      {
-        model: this.model,
-        prompt,
-        stream: false,
-        format: 'json',
-        options: {
-          temperature: 0.1,
-          num_predict: 1024,
-        },
-      },
-      {
-        timeout: CONFIG.llm.timeout,
-      }
-    );
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 1024,
+      temperature: 0.1,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-    const responseText = response.data.response;
-    const promptTokens = response.data.prompt_eval_count ?? '?';
-    const responseTokens = response.data.eval_count ?? '?';
-    process.stderr.write(`  [LLM] Tokens for ${testId}: prompt=${promptTokens}, response=${responseTokens}\n`);
+    const textBlock = response.content.find((b) => b.type === 'text');
+    const responseText = textBlock && textBlock.type === 'text' ? textBlock.text : '';
+
+    process.stderr.write(`  [LLM] Tokens for ${testId}: prompt=${response.usage.input_tokens}, response=${response.usage.output_tokens}\n`);
 
     // Handle empty response
     if (!responseText) {
@@ -145,8 +160,18 @@ export class LLMJudge {
 
     process.stderr.write(`  [LLM] Raw response for ${testId} (${responseText.length} chars): ${responseText.substring(0, 500)}\n`);
 
+    const json = this.extractJson(responseText);
+    if (!json) {
+      process.stderr.write(`  [LLM] WARNING: No JSON object in response for ${testId}\n`);
+      return {
+        testId,
+        pass: false,
+        reason: `No JSON object in LLM response: ${responseText.substring(0, 200)}`,
+      };
+    }
+
     try {
-      const judgment = JSON.parse(responseText) as Judgment;
+      const judgment = JSON.parse(json) as Judgment;
 
       // Validate testId matches
       if (judgment.testId !== testId) {
@@ -212,24 +237,5 @@ export class LLMJudge {
     }
 
     return allJudgments;
-  }
-
-  async unloadModel(): Promise<void> {
-    try {
-      process.stderr.write(`  [LLM] Unloading judge model ${this.model}...\n`);
-      await axios.post(
-        `${this.ollamaUrl}/api/generate`,
-        {
-          model: this.model,
-          keep_alive: 0,
-        },
-        {
-          timeout: 30000,
-        }
-      );
-      process.stderr.write(`  [LLM] Judge model unloaded.\n`);
-    } catch {
-      process.stderr.write(`  [LLM] Warning: Failed to unload judge model\n`);
-    }
   }
 }
