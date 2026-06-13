@@ -175,8 +175,8 @@ JUDGE_MODE=dual npm test        # opt in the agent judge (env, not a flag)
   chosen by the agent, not the runner.
 - **Another model:** point `JUDGE_AGENT` at that vendor's ACP agent command, e.g.
   `JUDGE_AGENT="gemini-acp" JUDGE_MODE=dual npm test`. No code change.
-- If the agent can't be reached or can't answer, the run falls back to the simple
-  judge — the simple judge is always the floor.
+- **Fallback:** if the agent can't be reached or can't answer, the run falls back to
+  the simple judge — the simple judge is always the floor.
 
 ---
 
