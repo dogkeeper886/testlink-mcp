@@ -38,3 +38,4 @@ port, not a CI overhaul.
 
 - Created: 2026-06-12
 - Plan: #82
+- Issues: #83, #84
