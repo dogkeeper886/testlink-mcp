@@ -38,4 +38,8 @@ port, not a CI overhaul.
 
 - Created: 2026-06-12
 - Plan: #82
-- Issues: #83 (done — PR #85 merged), #84 (open — CI key, decision-gated)
+- Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, decision-gated),
+  #86 (open — re-port to the Agent SDK for keyless subscription auth; corrects #83)
+- Upstream: agent-workflows-runner#35 — root-cause fix (judge should support the Agent SDK);
+  #86 follows it. Realization: the keyless/subscription path is `@anthropic-ai/claude-agent-sdk`
+  (as ai-qa-studio uses), not the raw Messages SDK #83 ported.
