@@ -40,9 +40,13 @@ port, not a CI overhaul.
 - Plan: #82
 - Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, decision-gated),
   #86 (open — re-port to the Agent SDK for keyless subscription auth; corrects #83)
-- #86 is **planned** (approach on the issue): add an `@anthropic-ai/claude-agent-sdk` judge
-  backend — one-shot `query()`, keyless via `~/.claude` / `CLAUDE_CODE_OAUTH_TOKEN`; raw-SDK
-  backend (#83) kept as the keyed option.
-- Direction: **testlink-mcp #86 leads; agent-workflows-runner#35 is the backport** (reversed
-  from the original "follows upstream"). Realization: the keyless/subscription path is
-  `@anthropic-ai/claude-agent-sdk` (as ai-qa-studio uses), not the raw Messages SDK #83 ported.
+- #86 is **planned** as **judge = ACP client (Option A)**: the LLM judge becomes an Agent
+  Client Protocol client (`@agentclientprotocol/sdk`) that spawns a configured ACP agent
+  (Claude `claude-agent-acp` by default; Gemini/others by config) and parses its verdict.
+  Goal = compatibility + lowest maintenance: **add a model = config, not code**; keyless
+  subscription auth comes from the agent (`~/.claude` / `CLAUDE_CODE_OAUTH_TOKEN`).
+  **Supersedes #83** (raw `@anthropic-ai/sdk`, to be removed) and makes #84 moot.
+- Direction: **testlink-mcp #86 leads; agent-workflows-runner#35 is the backport** ("judge =
+  ACP client" for the family). Path proven by ai-qa-studio (ACP client → claude-code-acp).
+- Trade-off accepted: ACP-less sources (Ollama, raw API) need a generic ACP bridge; the
+  deterministic simple judge stays the default correctness floor regardless.
