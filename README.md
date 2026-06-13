@@ -89,19 +89,6 @@ execution that *records* a result.
 | **Requirements** (7) | `create_requirement_specification`, `delete_requirement_specification`, `list_requirement_specifications`, `create_requirement`, `get_requirement`, `list_requirements`, `assign_requirements` |
 | **Projects** (1) | `list_projects` |
 
-## Tested by an AI judge
-
-Quality is enforced by an end-to-end suite (`cicd/tests`) that provisions a real TestLink
-flow, exercises the tools, and tears it down — judged two ways:
-
-![Dual-judge test runner with a keyless Claude ACP agent](docs/diagrams/agent-judge.png)
-
-A deterministic **simple judge** is the always-on correctness floor; an opt-in **agent
-judge** asks a Claude agent (over the [Agent Client Protocol](https://agentclientprotocol.com))
-for a semantic verdict, catching silent failures that exit codes miss. The agent runs
-**keyless** on a Claude subscription — no API key. See
-[`cicd/tests/README.md`](cicd/tests/README.md) for how to run it.
-
 ## Configuration
 
 | Variable | Required | Description |

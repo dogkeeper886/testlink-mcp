@@ -147,6 +147,8 @@ npx tsx src/cli.ts list                       # list all tests
 
 ### Judging
 
+![Dual-judge test runner with a keyless Claude ACP agent](../../docs/diagrams/agent-judge.png)
+
 - **Simple judge** (default): a test passes when every step exits 0, all
   `expectPatterns` match, no `rejectPatterns` match, and no `ERROR_PATTERNS`
   (`config.ts`) appear in the logs (minus `ERROR_EXCLUSIONS`, e.g. `isError`).
