@@ -41,9 +41,10 @@ to the judge, not a CI overhaul.
 ## Status
 
 - Created: 2026-06-12
+- **✅ Completed: 2026-06-13** — the reasoning judge is a keyless ACP-client "agent judge" on `main`.
 - Plan: #86 (judge = ACP client; supersedes the stale Anthropic-SDK plan #82, now closed)
-- Tasks (from #86): #87 (core — ACP-client judge + rename) — ✅ **done, PR #92 merged**; #88 (add-a-model-by-config proof), #89 (docs + prune/rename skills) — ✅ **done, PR #93 merged**
-- Follow-ups surfaced by #87: #90 (TC-S1-002 false positive the agent judge caught), #91 (CI test-suite.yml orphaned by the rewrite) — both **PR #94 open**
+- Tasks (from #86): #87 (core — ACP-client judge + rename) — ✅ **done, PR #92 merged**; #89 (docs + prune/rename skills) — ✅ **done, PR #93 merged**; #88 (add-a-model-by-config proof) — **closed, not pursued**
+- Follow-ups surfaced by #87: #90 (TC-S1-002 false positive the agent judge caught) + #91 (CI test-suite.yml orphaned by the rewrite) — ✅ **done, PR #94 merged**
 - Earlier issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk, to be removed by #87),
   #84 (closed — CI key, moot under keyless ACP)
 - #86 is **planned** as **judge = ACP client (Option A)**: the reasoning judge becomes an
