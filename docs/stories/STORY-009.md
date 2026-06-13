@@ -42,8 +42,9 @@ to the judge, not a CI overhaul.
 
 - Created: 2026-06-12
 - Plan: #86 (judge = ACP client; supersedes the stale Anthropic-SDK plan #82, now closed)
-- Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, now moot under ACP),
-  #86 (open — judge = ACP client; supersedes #83)
+- Tasks (from #86): #87 (core — ACP-client judge + rename), #88 (add-a-model-by-config proof), #89 (docs)
+- Earlier issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk, to be removed by #87),
+  #84 (closed — CI key, moot under keyless ACP)
 - #86 is **planned** as **judge = ACP client (Option A)**: the reasoning judge becomes an
   Agent Client Protocol client (`@agentclientprotocol/sdk`) that spawns a configured ACP
   agent (Claude `claude-agent-acp` by default; Gemini/others by config) and parses its
