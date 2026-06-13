@@ -24,17 +24,16 @@ export const CONFIG = {
   defaultTimeout: 60000,
   defaultStepTimeout: 30000,
   
-  // LLM Judge defaults
-  llm: {
-    // 'simple' (default) = deterministic checks only. 'dual' = also run the LLM judge.
-    mode: process.env.LLM_JUDGE_MODE || 'simple',
-    // Optional base URL for any Anthropic-compatible endpoint (hosted or local).
-    // Unset → the Anthropic SDK's default endpoint.
-    baseUrl: process.env.LLM_JUDGE_URL || undefined,
-    // Real key for hosted Anthropic; a placeholder is fine for a local endpoint
-    // that ignores auth.
-    apiKey: process.env.ANTHROPIC_API_KEY || 'local',
-    model: process.env.LLM_JUDGE_MODEL || 'claude-haiku-4-5-20251001',
+  // Agent Judge defaults
+  judge: {
+    // 'simple' (default) = deterministic checks only. 'dual' = also run the agent judge.
+    mode: process.env.JUDGE_MODE || 'simple',
+    // Command that launches the ACP agent the judge talks to. Empty → the bundled
+    // Claude ACP agent (@agentclientprotocol/claude-agent-acp), keyless via the
+    // agent's own auth (~/.claude / CLAUDE_CODE_OAUTH_TOKEN). Set to any other ACP
+    // agent's command to swap models/vendors — config, not code. Model selection
+    // lives in the agent, not here.
+    agent: process.env.JUDGE_AGENT || '',
     timeout: 300000,
     stdoutLimit: 1000,
     stderrLimit: 500,

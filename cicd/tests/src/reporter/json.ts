@@ -20,7 +20,7 @@ export class JsonReporter {
   generateReports(
     results: TestResult[],
     simpleJudgments: Judgment[],
-    llmJudgments: Judgment[],
+    agentJudgments: Judgment[],
     startTime: Date,
     suite: string
   ): { summary: TestSummary; reports: TestReport[] } {
@@ -28,7 +28,7 @@ export class JsonReporter {
     const duration = endTime.getTime() - startTime.getTime();
 
     const simpleMap = new Map(simpleJudgments.map((j) => [j.testId, j]));
-    const llmMap = new Map(llmJudgments.map((j) => [j.testId, j]));
+    const agentMap = new Map(agentJudgments.map((j) => [j.testId, j]));
 
     const reports: TestReport[] = results.map((result) => {
       const simple = simpleMap.get(result.testCase.id) || {
@@ -36,13 +36,13 @@ export class JsonReporter {
         pass: false,
         reason: 'No judgment',
       };
-      const llm = llmMap.get(result.testCase.id) || {
+      const agent = agentMap.get(result.testCase.id) || {
         testId: result.testCase.id,
         pass: false,
         reason: 'No judgment',
       };
 
-      const pass = simple.pass && llm.pass;
+      const pass = simple.pass && agent.pass;
 
       const steps: StepReportEntry[] = result.steps.map((step) => ({
         name: step.name,
@@ -61,18 +61,18 @@ export class JsonReporter {
         pass,
         reason: pass
           ? 'Both judges passed'
-          : `Simple: ${simple.reason}; LLM: ${llm.reason}`,
+          : `Simple: ${simple.reason}; Agent: ${agent.reason}`,
         duration: result.totalDuration,
         steps,
         logFile: result.logFile,
         simpleJudge: simple,
-        llmJudge: llm,
+        agentJudge: agent,
         testlink_id: result.testCase.testlink_id,
       };
     });
 
     const simplePassed = simpleJudgments.filter((j) => j.pass).length;
-    const llmPassed = llmJudgments.filter((j) => j.pass).length;
+    const agentPassed = agentJudgments.filter((j) => j.pass).length;
     const passed = reports.filter((r) => r.pass).length;
 
     const summary: TestSummary = {
@@ -87,9 +87,9 @@ export class JsonReporter {
         passed: simplePassed,
         failed: results.length - simplePassed,
       },
-      llm: {
-        passed: llmPassed,
-        failed: results.length - llmPassed,
+      agent: {
+        passed: agentPassed,
+        failed: results.length - agentPassed,
       },
       environment: {
         hostname: hostname(),
@@ -125,7 +125,7 @@ export class JsonReporter {
         duration: r.duration,
         steps: r.steps,
         simpleJudge: r.simpleJudge,
-        llmJudge: r.llmJudge,
+        agentJudge: r.agentJudge,
       })),
     };
     console.log(JSON.stringify(output, null, 2));
