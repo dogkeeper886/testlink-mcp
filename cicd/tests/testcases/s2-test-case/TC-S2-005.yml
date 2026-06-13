@@ -15,7 +15,7 @@ steps:
   - name: "Resolve internal id, update by it, verify on read-back"
     command: |
       TC=$(cat /tmp/tl-flow/case_ext_id)
-      INTERNAL=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; print(tc['id'])")
+      INTERNAL=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; print(tc['testcase_id'])")
       echo "INTERNAL_ID=$INTERNAL"
       npx tsx cicd/tests/src/mcp-client.ts update_test_case "{\"test_case_id\":\"$INTERNAL\",\"data\":{\"summary\":\"<p>INTERNAL_ID_MARKER</p>\"}}" 2>/dev/null >/dev/null
       npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; assert 'INTERNAL_ID_MARKER' in (tc.get('summary') or ''),'update-by-internal-id did not apply'; print('INTERNAL_UPDATE_OK')"

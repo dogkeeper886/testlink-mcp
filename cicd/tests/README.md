@@ -59,7 +59,7 @@ s7  REQUIREMENTS       TC-S7-001 list_requirements
 > sort), so the real ordering follows the arrows above regardless of the numeric
 > suite name.
 
-A full `cli.ts run` executes 17 tests and passes against a **fresh** TestLink
+A full `cli.ts run` executes 19 tests and passes against a **fresh** TestLink
 (only precondition: the XML-RPC API is enabled), repeatably.
 
 ---
