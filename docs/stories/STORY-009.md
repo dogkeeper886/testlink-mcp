@@ -35,4 +35,4 @@ the maintainer flagged this briefly and wants the *how* settled at plan time.
 ## Status
 
 - Created: 2026-06-12
-- Issues: none
+- Plan: #82
