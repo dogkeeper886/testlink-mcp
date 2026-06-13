@@ -40,6 +40,9 @@ port, not a CI overhaul.
 - Plan: #82
 - Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, decision-gated),
   #86 (open — re-port to the Agent SDK for keyless subscription auth; corrects #83)
-- Upstream: agent-workflows-runner#35 — root-cause fix (judge should support the Agent SDK);
-  #86 follows it. Realization: the keyless/subscription path is `@anthropic-ai/claude-agent-sdk`
-  (as ai-qa-studio uses), not the raw Messages SDK #83 ported.
+- #86 is **planned** (approach on the issue): add an `@anthropic-ai/claude-agent-sdk` judge
+  backend — one-shot `query()`, keyless via `~/.claude` / `CLAUDE_CODE_OAUTH_TOKEN`; raw-SDK
+  backend (#83) kept as the keyed option.
+- Direction: **testlink-mcp #86 leads; agent-workflows-runner#35 is the backport** (reversed
+  from the original "follows upstream"). Realization: the keyless/subscription path is
+  `@anthropic-ai/claude-agent-sdk` (as ai-qa-studio uses), not the raw Messages SDK #83 ported.
