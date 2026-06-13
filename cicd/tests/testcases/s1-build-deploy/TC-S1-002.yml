@@ -8,8 +8,14 @@ dependencies:
   - TC-S1-001
 
 steps:
-  - name: Verify server exits cleanly without API key
-    command: "timeout 5 node dist/index.js 2>&1; test $? -ne 0 && echo 'EXIT_OK: server requires API key'"
+  - name: Verify server self-exits (exit 1) when API key missing
+    # Must unset TESTLINK_API_KEY — the suite exports it, so without `env -u` the
+    # server starts and hangs on stdin until `timeout` kills it (exit 124), which
+    # would falsely "pass". The server's guard is `process.exit(1)`, so require
+    # exactly 1: that rejects a timeout kill (124) and a missing-node error (127),
+    # pinning the documented missing-key contract (#90). dist validity is covered
+    # by TC-S1-001 (build) + the next step's `node --check`.
+    command: "env -u TESTLINK_API_KEY timeout 5 node dist/index.js; test $? -eq 1 && echo 'EXIT_OK: server self-exited (code 1) without API key'"
     expectPatterns:
       - "EXIT_OK"
 
@@ -21,5 +27,6 @@ steps:
 
 criteria: |
   Verify MCP server behaves correctly:
-  - Server exits with non-zero when TESTLINK_API_KEY is missing
+  - Server self-exits with code 1 (its own guard, not killed by timeout) when
+    TESTLINK_API_KEY is missing
   - dist/index.js is a valid ES module entry point

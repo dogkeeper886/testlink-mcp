@@ -17,18 +17,13 @@ on:
           - "s7-requirements"
           - "all"
       judge_mode:
-        description: "Test judge mode"
+        description: "Test judge mode (dual needs CLAUDE_CODE_OAUTH_TOKEN; else falls back to simple)"
         required: false
         default: "simple"
         type: choice
         options:
           - "simple"
           - "dual"
-      judge_model:
-        description: "LLM model for judging (if dual mode)"
-        required: false
-        default: "gemma3:12b-judge"
-        type: string
       test_id:
         description: "Run a single test by ID (e.g., TC-S1-001)"
         required: false
@@ -43,11 +38,6 @@ on:
         description: "Test judge mode (simple, dual)"
         required: false
         default: "simple"
-        type: string
-      judge_model:
-        description: "LLM model for judging"
-        required: false
-        default: "gemma3:12b-judge"
         type: string
       test_id:
         description: "Run a single test by ID"
@@ -82,15 +72,13 @@ jobs:
         env:
           TESTLINK_URL: ${{ secrets.TESTLINK_URL }}
           TESTLINK_API_KEY: ${{ secrets.TESTLINK_API_KEY }}
-          OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
+          # Judge mode is an env var, not a CLI flag. 'dual' opts in the agent judge,
+          # which authenticates keyless via the token below; if the secret is unset
+          # the agent judge is unreachable and the run falls back to the simple judge.
+          JUDGE_MODE: ${{ inputs.judge_mode || 'simple' }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           cd cicd/tests
-
-          # Build judge flags based on input (simple judge is the default; LLM is opt-in)
-          JUDGE_FLAGS=""
-          if [ "${{ inputs.judge_mode }}" = "dual" ]; then
-            JUDGE_FLAGS="--llm --judge-model ${{ inputs.judge_model || 'llama3:8b' }}"
-          fi
 
           # Build suite flag
           SUITE_FLAG=""
@@ -106,11 +94,10 @@ jobs:
 
           echo "Suite: ${{ inputs.suite }}"
           echo "Test ID: ${{ inputs.test_id || 'all' }}"
-          echo "Judge mode: ${{ inputs.judge_mode || 'dual' }}"
-          echo "Judge flags: $JUDGE_FLAGS"
+          echo "Judge mode: ${{ inputs.judge_mode || 'simple' }}"
 
-          # Run tests with JSON output
-          npx tsx src/cli.ts run $SUITE_FLAG $ID_FLAG $JUDGE_FLAGS --format json > /tmp/test-results.json || true
+          # Run tests with JSON output (judge mode via JUDGE_MODE env)
+          npx tsx src/cli.ts run $SUITE_FLAG $ID_FLAG --format json > /tmp/test-results.json || true
 
           echo "--- JSON Results ---"
           cat /tmp/test-results.json
