@@ -1,5 +1,5 @@
 ---
-name: add-tool
+name: testlink-mcp-code
 description: Guidelines for writing or changing this project's MCP server code — adding or modifying TestLink tools
 user-invocable: true
 ---
@@ -92,5 +92,5 @@ Reference the tool that produces each id (e.g. *"the internal id from
 - [ ] Registry entry (`name` snake_case, `inputSchema`, required vs optional) + a
       `switch` case
 - [ ] No async/polling machinery added
-- [ ] Exercised through the `cicd/tests` end-to-end flow (see `integration-test-flow`)
+- [ ] Exercised through the `cicd/tests` end-to-end flow (see `agent-runner-flow`)
       — embed it in the connected flow, don't add a standalone test

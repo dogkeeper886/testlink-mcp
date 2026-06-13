@@ -1,5 +1,5 @@
 ---
-name: integration-test-flow
+name: agent-runner-flow
 description: |
   Integration test design principles for a connected end-to-end flow. Use when
   writing, reviewing, refactoring, or adding test cases under cicd/tests/ (the YAML
