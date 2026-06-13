@@ -12,7 +12,7 @@ import path from 'path';
 import { mkdirSync, existsSync } from 'fs';
 import { TestLoader } from './loader.js';
 import { TestExecutor } from './executor.js';
-import { SimpleJudge, LLMJudge } from './judge/index.js';
+import { SimpleJudge, AgentJudge } from './judge/index.js';
 import { JsonReporter, ConsoleReporter } from './reporter/index.js';
 import { RunConfig, DEFAULT_CONFIG } from './types.js';
 import { CONFIG } from './config.js';
@@ -57,7 +57,7 @@ program
       suite: options.suite,
       testId: options.id,
       dryRun: options.dryRun,
-      dualMode: CONFIG.llm.mode === 'dual',
+      dualMode: CONFIG.judge.mode === 'dual',
       outputDir,
       outputFormat: options.format as RunConfig['outputFormat'],
       workingDir: projectRoot,
@@ -68,7 +68,7 @@ program
     process.stderr.write(`[CONFIG] Docker compose: ${dockerDir}\n`);
     process.stderr.write(`[CONFIG] Testcases: ${testcasesDir}\n`);
     process.stderr.write(`[CONFIG] Output: ${outputDir}\n`);
-    process.stderr.write(`[CONFIG] LLM Judge: ${config.dualMode ? `dual (${CONFIG.llm.baseUrl || 'Anthropic API'}, ${CONFIG.llm.model})` : 'simple only'}\n`);
+    process.stderr.write(`[CONFIG] Agent judge: ${config.dualMode ? `dual (${CONFIG.judge.agent || 'bundled Claude ACP agent'})` : 'simple only'}\n`);
 
     // Load test cases
     const loader = new TestLoader(testcasesDir);
@@ -131,20 +131,20 @@ program
     const simpleJudge = new SimpleJudge();
     const simpleJudgments = simpleJudge.judgeAll(results);
 
-    let llmJudgments = simpleJudgments.map((j) => ({
+    let agentJudgments = simpleJudgments.map((j) => ({
       ...j,
-      reason: config.dualMode ? j.reason : 'LLM judge disabled (simple mode)',
+      reason: config.dualMode ? j.reason : 'Agent judge disabled (simple mode)',
     }));
 
     if (config.dualMode) {
-      process.stderr.write('[JUDGE] Running LLM judge...\n');
-      const llmJudge = new LLMJudge();
+      process.stderr.write('[JUDGE] Running agent judge...\n');
+      const agentJudge = new AgentJudge();
 
-      const available = await llmJudge.isAvailable();
+      const available = await agentJudge.isAvailable();
       if (available) {
-        llmJudgments = await llmJudge.judgeResults(results);
+        agentJudgments = await agentJudge.judgeResults(results);
       } else {
-        process.stderr.write('[WARN] LLM judge endpoint unreachable, falling back to simple judge results\n');
+        process.stderr.write('[WARN] Agent judge unreachable, falling back to simple judge results\n');
       }
     }
 
@@ -153,7 +153,7 @@ program
     const { summary, reports } = jsonReporter.generateReports(
       results,
       simpleJudgments,
-      llmJudgments,
+      agentJudgments,
       startTime,
       suiteName
     );

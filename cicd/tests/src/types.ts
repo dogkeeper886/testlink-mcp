@@ -163,8 +163,8 @@ export interface TestReport {
   logFile: string;
   /** Simple judge verdict */
   simpleJudge: Judgment;
-  /** LLM judge verdict */
-  llmJudge: Judgment;
+  /** Agent judge verdict */
+  agentJudge: Judgment;
   /** TestLink test case ID for traceability */
   testlink_id?: number;
 }
@@ -192,8 +192,8 @@ export interface TestSummary {
     passed: number;
     failed: number;
   };
-  /** LLM judge breakdown */
-  llm: {
+  /** Agent judge breakdown */
+  agent: {
     passed: number;
     failed: number;
   };
@@ -221,7 +221,7 @@ export interface RunConfig {
   testId?: string;
   /** Show what would run without executing */
   dryRun: boolean;
-  /** Run the LLM judge in addition to the simple judge (LLM_JUDGE_MODE=dual) */
+  /** Run the agent judge in addition to the simple judge (JUDGE_MODE=dual) */
   dualMode: boolean;
   /** Output directory for results */
   outputDir: string;
