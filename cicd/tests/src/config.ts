@@ -26,8 +26,15 @@ export const CONFIG = {
   
   // LLM Judge defaults
   llm: {
-    defaultUrl: 'http://192.168.6.113:11435',
-    defaultModel: 'gemma3:12b-judge',
+    // 'simple' (default) = deterministic checks only. 'dual' = also run the LLM judge.
+    mode: process.env.LLM_JUDGE_MODE || 'simple',
+    // Optional base URL for any Anthropic-compatible endpoint (hosted or local).
+    // Unset → the Anthropic SDK's default endpoint.
+    baseUrl: process.env.LLM_JUDGE_URL || undefined,
+    // Real key for hosted Anthropic; a placeholder is fine for a local endpoint
+    // that ignores auth.
+    apiKey: process.env.ANTHROPIC_API_KEY || 'local',
+    model: process.env.LLM_JUDGE_MODEL || 'claude-haiku-4-5-20251001',
     timeout: 300000,
     stdoutLimit: 1000,
     stderrLimit: 500,

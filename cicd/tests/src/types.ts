@@ -221,12 +221,8 @@ export interface RunConfig {
   testId?: string;
   /** Show what would run without executing */
   dryRun: boolean;
-  /** Skip LLM judging (simple judge only) */
-  noLlm: boolean;
-  /** URL of the LLM judge Ollama instance */
-  judgeUrl: string;
-  /** Model to use for LLM judging */
-  judgeModel: string;
+  /** Run the LLM judge in addition to the simple judge (LLM_JUDGE_MODE=dual) */
+  dualMode: boolean;
   /** Output directory for results */
   outputDir: string;
   /** Output format */
@@ -242,8 +238,6 @@ export interface RunConfig {
  */
 export const DEFAULT_CONFIG: Partial<RunConfig> = {
   dryRun: false,
-  noLlm: true,
-  judgeUrl: 'http://localhost:11434',
-  judgeModel: 'llama3:8b',
+  dualMode: false,
   outputFormat: 'console',
 };
