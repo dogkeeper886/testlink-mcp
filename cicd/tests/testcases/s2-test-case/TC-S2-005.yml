@@ -1,0 +1,30 @@
+id: TC-S2-005
+name: "Flow: update_test_case by INTERNAL id"
+suite: s2-test-case
+priority: 5
+timeout: 30000
+dependencies: [TC-S2-002]
+
+# Regression for #80: update_test_case (and the other case-id handlers) must
+# accept a NUMERIC INTERNAL id, not only the external PREFIX-N. Before the fix the
+# internal id was sent as testcaseexternalid and resolved to the wrong/no case, so
+# the marker never landed. Derives the internal id at runtime from the case — no
+# hardcoded ids — and verifies the update applied on read-back.
+
+steps:
+  - name: "Resolve internal id, update by it, verify on read-back"
+    command: |
+      TC=$(cat /tmp/tl-flow/case_ext_id)
+      INTERNAL=$(npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; print(tc['testcase_id'])")
+      echo "INTERNAL_ID=$INTERNAL"
+      npx tsx cicd/tests/src/mcp-client.ts update_test_case "{\"test_case_id\":\"$INTERNAL\",\"data\":{\"summary\":\"<p>INTERNAL_ID_MARKER</p>\"}}" 2>/dev/null >/dev/null
+      npx tsx cicd/tests/src/mcp-client.ts read_test_case "{\"test_case_id\":\"$TC\"}" 2>/dev/null | python3 -c "import sys,json; tc=json.loads(json.load(sys.stdin)['content'][0]['text']); tc=tc[0] if isinstance(tc,list) else tc; assert 'INTERNAL_ID_MARKER' in (tc.get('summary') or ''),'update-by-internal-id did not apply'; print('INTERNAL_UPDATE_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "INTERNAL_ID=[0-9]+"
+      - "INTERNAL_UPDATE_OK"
+
+criteria: |
+  update_test_case accepts a numeric internal test case id (not only the external
+  PREFIX-N) and the change is visible on read-back. Regression guard for #80.
+goal: "Update the flow's test case via its internal id (issue #80 regression)"

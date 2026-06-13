@@ -11,12 +11,15 @@ if (!TESTLINK_API_KEY) {
     process.exit(1);
 }
 // Input validation helpers
+// A TestLink external id is PREFIX-NUMBER (e.g. MFT-20); the captured group is the
+// numeric part. Single source of truth for external-vs-internal classification.
+const EXTERNAL_TC_ID = /^[A-Za-z0-9]+-(\d+)$/;
 function parseTestCaseId(id) {
     if (!id || typeof id !== 'string') {
         throw new Error('Test case ID must be a non-empty string');
     }
     // Handle external ID format (PREFIX-123) - extract numeric part
-    const externalIdMatch = id.match(/^[A-Za-z0-9]+-(\d+)$/);
+    const externalIdMatch = id.match(EXTERNAL_TC_ID);
     if (externalIdMatch) {
         return externalIdMatch[1];
     }
@@ -28,6 +31,15 @@ function parseTestCaseId(id) {
 }
 function validateTestCaseId(id) {
     parseTestCaseId(id); // This will throw if invalid
+}
+// Route a test case identifier to the correct TestLink param: an external id
+// (PREFIX-123) goes to testcaseexternalid; a numeric id is the internal testcaseid.
+// TestLink's checkTestCaseIdentity accepts either — sending a numeric internal id
+// as testcaseexternalid would resolve it to the wrong case.
+function testCaseIdParam(id) {
+    return EXTERNAL_TC_ID.test(id)
+        ? { testcaseexternalid: id }
+        : { testcaseid: parseTestCaseId(id) };
 }
 function validateProjectId(id) {
     if (!id || typeof id !== 'string') {
@@ -97,17 +109,7 @@ class TestLinkAPI {
     }
     async getTestCase(testCaseId) {
         validateTestCaseId(testCaseId);
-        // If it looks like an external ID (PREFIX-123), use testcaseexternalid
-        if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
-            return this.handleAPICall(() => this.client.getTestCase({
-                testcaseexternalid: testCaseId
-            }));
-        }
-        // Otherwise use the numeric ID
-        const numericId = parseTestCaseId(testCaseId);
-        return this.handleAPICall(() => this.client.getTestCase({
-            testcaseid: numericId
-        }));
+        return this.handleAPICall(() => this.client.getTestCase(testCaseIdParam(testCaseId)));
     }
     async updateTestCase(testCaseId, data) {
         validateTestCaseId(testCaseId);
@@ -115,7 +117,7 @@ class TestLinkAPI {
             throw new Error('Update data must be an object');
         }
         const updateParams = {
-            testcaseexternalid: testCaseId
+            ...testCaseIdParam(testCaseId)
         };
         if (data.name)
             updateParams.testcasename = data.name;
@@ -131,7 +133,11 @@ class TestLinkAPI {
             updateParams.executiontype = data.execution_type;
         if (data.status !== undefined)
             updateParams.status = data.status;
-        return this.handleAPICall(() => this.client.updateTestCase(updateParams));
+        // Call via the generic dispatcher, not the typed client.updateTestCase: the
+        // lib wrapper hard-requires testcaseexternalid and would reject a numeric
+        // testcaseid before it reaches the server (which accepts either via
+        // checkTestCaseIdentity). Same approach as deleteTestCase/assignRequirements.
+        return this.handleAPICall(() => this.client._performRequest('updateTestCase', updateParams));
     }
     async createTestCase(data) {
         if (!data || typeof data !== 'object') {
@@ -162,9 +168,7 @@ class TestLinkAPI {
         validateTestCaseId(testCaseId);
         // testlink-xmlrpc 3.0.0 has no typed deleteTestCase wrapper; call the
         // server's tl.deleteTestCase (real delete) via the generic dispatcher.
-        const params = /^[A-Za-z0-9]+-\d+$/.test(testCaseId)
-            ? { testcaseexternalid: testCaseId }
-            : { testcaseid: parseTestCaseId(testCaseId) };
+        const params = testCaseIdParam(testCaseId);
         return this.handleAPICall(() => this.client._performRequest('deleteTestCase', params));
     }
     async getTestProjects() {
@@ -290,10 +294,14 @@ class TestLinkAPI {
         validateTestCaseId(data.testcaseid);
         validateSuiteId(data.testplanid);
         validateProjectId(data.testprojectid);
-        return this.handleAPICall(() => this.client.addTestCaseToTestPlan({
+        // Generic dispatcher, not the typed client.addTestCaseToTestPlan: the lib
+        // wrapper hard-requires testcaseexternalid and would reject a numeric
+        // testcaseid before it reaches the server (which accepts either via
+        // checkTestCaseIdentity).
+        return this.handleAPICall(() => this.client._performRequest('addTestCaseToTestPlan', {
             testprojectid: parseInt(data.testprojectid),
             testplanid: parseInt(data.testplanid),
-            testcaseexternalid: data.testcaseid,
+            ...testCaseIdParam(data.testcaseid),
             version: data.version || 1,
             platformid: data.platformid ? parseInt(data.platformid) : undefined,
             urgency: data.urgency || 2,
@@ -339,12 +347,7 @@ class TestLinkAPI {
         }
         const params = { testplanid: parseInt(planId) };
         // getLastExecutionResult requires a test case id (external PREFIX-N or numeric)
-        if (/^[A-Za-z0-9]+-\d+$/.test(testCaseId)) {
-            params.testcaseexternalid = testCaseId;
-        }
-        else {
-            params.testcaseid = parseTestCaseId(testCaseId);
-        }
+        Object.assign(params, testCaseIdParam(testCaseId));
         if (buildId) {
             params.buildid = parseInt(buildId);
         }
@@ -369,12 +372,7 @@ class TestLinkAPI {
             steps: data.steps || []
         };
         // Pass external PREFIX-N as testcaseexternalid; numeric as internal testcaseid
-        if (/^[A-Za-z0-9]+-\d+$/.test(data.test_case_id)) {
-            executionParams.testcaseexternalid = data.test_case_id;
-        }
-        else {
-            executionParams.testcaseid = parseTestCaseId(data.test_case_id);
-        }
+        Object.assign(executionParams, testCaseIdParam(data.test_case_id));
         return this.handleAPICall(() => this.client.setTestCaseExecutionResult(executionParams));
     }
     async getRequirements(projectId) {
@@ -454,7 +452,7 @@ class TestLinkAPI {
         validateSuiteId(data.reqspec_id);
         const reqs = (Array.isArray(data.requirement_ids) ? data.requirement_ids : [data.requirement_ids]).map((r) => parseInt(r));
         return this.handleAPICall(() => this.client._performRequest('assignRequirements', {
-            testcaseexternalid: data.test_case_id,
+            ...testCaseIdParam(data.test_case_id),
             testprojectid: parseInt(data.project_id),
             requirements: [{ req_spec: parseInt(data.reqspec_id), requirements: reqs }]
         }));
@@ -718,7 +716,7 @@ const tools = [
                     type: 'object',
                     description: 'Test case assignment data',
                     properties: {
-                        testcaseid: { type: 'string', description: 'Test case external ID (e.g., GPDL-1)' },
+                        testcaseid: { type: 'string', description: 'Test case ID — numeric (internal) or external (PREFIX-123); both accepted' },
                         testplanid: { type: 'string', description: 'Test plan ID' },
                         testprojectid: { type: 'string', description: 'Test project ID' },
                         version: { type: 'number', description: 'Test case version (optional, defaults to 1)' },
@@ -954,7 +952,7 @@ const tools = [
                     type: 'object',
                     description: 'Requirement coverage assignment',
                     properties: {
-                        test_case_id: { type: 'string', description: 'Test case external ID (PREFIX-123)' },
+                        test_case_id: { type: 'string', description: 'Test case ID — numeric (internal) or external (PREFIX-123); both accepted' },
                         project_id: { type: 'string', description: 'Test project ID' },
                         reqspec_id: { type: 'string', description: 'Requirement specification ID' },
                         requirement_ids: { type: 'array', description: 'Requirement IDs to assign', items: { type: 'string' } }
