@@ -1,215 +1,96 @@
 ---
 name: add-tool
-description: Add new MCP tools following standard patterns and guidelines
+description: Guidelines for writing or changing this project's MCP server code — adding or modifying TestLink tools
 user-invocable: true
 ---
 
-# Add New MCP Tool
+# MCP Tool Guidelines (testlink-mcp)
 
-Add a new MCP tool to this server following established patterns and guidelines.
+How to add or change a tool in this server, grounded in how the code actually works.
+The rule above all: **read the closest existing tool and copy its shape** — don't
+invent a new style.
 
-## Process Overview
+## The layout (one file)
 
-This command guides you through a systematic process to:
-1. Analyze API behavior to understand the operation
-2. Study existing codebase patterns
-3. Implement consistent code following project guidelines
-4. Review for compliance with project standards
+Everything lives in `src/index.ts`:
+- **`TestLinkAPI` class** wraps `new TestLink({...})` from the `testlink-xmlrpc`
+  client. Each operation is a method that calls the client and is wrapped in
+  `this.handleAPICall(() => …)` for uniform error handling.
+- **Tool registry** — the `ListToolsRequestSchema` handler returns an array of
+  `{ name, description, inputSchema }`.
+- **Dispatch** — the `CallToolRequestSchema` handler is a `switch` on tool name; each
+  `case` destructures args and calls a `TestLinkAPI` method.
 
----
+Adding a tool = one new `TestLinkAPI` method + one registry entry + one `switch` case.
 
-## Phase 1: Understand the Project
+## The client, and the escape hatch
 
-### Study Project Guidelines
-- Read the project's CLAUDE.md file to understand architectural patterns
-- Identify the distinction between operation types (read-only vs async)
-- Review parameter ordering conventions
-- Understand error handling patterns
+Prefer the typed client method (`this.client.getTestCase(...)`, `createTestCase(...)`,
+etc.). But the `testlink-xmlrpc` typed wrappers carry `@MandatoryFields` decorators
+that **reject valid params before they reach the server** — and some operations have
+no typed wrapper at all. When that happens, call the dispatcher directly:
 
-### Study Existing Implementation
-- Search for similar existing tools in the services layer
-- Examine how existing tools are registered in the MCP server
-- Review how existing tools handle errors
-- Identify polling and retry patterns for async operations
-
-**Action:** Use file search tools to locate similar implementations before writing any code.
-
----
-
-## Phase 2: Gather Requirements
-
-### Understand the Operation
-Ask for or determine:
-- HTTP method and endpoint (or equivalent operation)
-- Request/response structure
-- Whether response includes async operation indicators
-- Business purpose of the operation
-
-### Determine Operation Type
-
-| Type | Characteristics | Template |
-|------|----------------|----------|
-| **Read-only query** | GET/query, no side effects | No retry params, return directly |
-| **Async with polling** | Create/delete/update, returns tracking ID | `maxRetries`, `pollIntervalMs` |
-| **Conditional async** | Multi-step, some steps conditional | Spread operator with conditional |
-| **Retrieve-then-update** | GET current state, merge, PUT back | Preserve all existing fields |
-| **Type-based conditional** | Different payloads per resource type | Switch/if on type |
-| **Type-based early return** | Entirely different flows per type | Early return pattern |
-| **Optional payload** | Empty body support for PUT/POST | Conditional body construction |
-
-**Action:** Confirm operation type before proceeding.
-
----
-
-## Phase 3: Pattern Analysis
-
-### Find the Most Similar Existing Tool
-Search the codebase for:
-- Functions with the same operation type
-- Functions calling similar API endpoints
-- Functions with matching patterns (polling, query, CRUD)
-
-### Copy the Pattern Exactly
-From the similar tool, note:
-- Parameter order and types
-- Default values
-- API URL construction
-- Request/response handling
-- Error handling structure
-- Polling logic (if async)
-
-**Action:** Read the complete implementation of the most similar tool to use as a template.
-
----
-
-## Phase 4: Implementation Planning
-
-### Create Checklist
-Plan the implementation:
-1. Implement service layer function
-2. Register tool in MCP server
-3. Implement request handler
-4. Review against guidelines
-5. Review tool description for AI agent clarity
-
-### Identify Potential Issues
-Before coding, consider:
-- Unique aspects not covered by existing patterns
-- Data transformation needs
-- Pagination requirements
-- Authentication differences
-
-**Action:** Stop and ask questions if the operation reveals patterns not seen in existing code.
-
----
-
-## Phase 5: Service Layer Implementation
-
-### Implement Core Function
-Follow the pattern from the most similar existing tool:
-- Use exact parameter ordering from the pattern
-- Use exact default values from the pattern
-- Copy API URL construction logic
-- Copy request structure
-- Copy error handling approach
-
-### For Async Operations
-- Copy polling loop exactly from existing async tool
-- Do not modify retry defaults without approval
-- Do not modify polling interval without approval
-- Standard defaults: `maxRetries = 5`, `pollIntervalMs = 2000`
-
-### For Read-Only Operations
-- Do not add retry parameters
-- Do not add polling logic
-- Return response data directly
-- Follow query/filter patterns if applicable
-
----
-
-## Phase 6: MCP Tool Registration
-
-### Register Tool Schema
-- Define tool name following project naming conventions (snake_case)
-- Write clear description (see Phase 9.5)
-- Define input schema matching function parameters
-- Mark required vs optional parameters correctly
-- Add retry parameters only for async operations
-
----
-
-## Phase 7: Request Handler Implementation
-
-### Implement Handler
-- Add case for the new tool
-- Destructure parameters with correct defaults
-- Obtain authentication using existing pattern
-- Call service function with parameters in correct order
-- Return response in standard format
-- Copy error handling exactly from similar handler
-
----
-
-## Phase 8: Compliance Review
-
-### Verify Against Project Standards
-- Parameter order matches conventions
-- Default values match conventions
-- Error handling matches existing patterns
-- Response structure matches existing patterns
-- No hardcoded values that should be configurable
-- Naming conventions followed
-
----
-
-## Phase 9: Tool Description Review for AI Agent Clarity
-
-### Ensure Tool Description is Actionable
-
-AI agents need clear descriptions to use tools correctly. Follow this structure:
-
-```
-[Action verb] [what it does]. [Additional context].
-PREREQUISITE: [condition] (use [tool_name]).
-REQUIRED: [param1] (use [tool_name] to get [param1]) + [param2].
-[Special notes].
+```ts
+(this.client as any)._performRequest('updateTestCase', params)
 ```
 
-**Parameter descriptions should include tool references:**
+Existing precedents (study these): `updateTestCase` (typed wrapper hard-requires
+`testcaseexternalid` and rejects a numeric `testcaseid`), `deleteTestCase`,
+`deleteTestSuite` (no typed wrapper). Use `_performRequest` only for these reasons;
+note why in a comment.
+
+## Test-case identifiers
+
+A test case can be addressed by **external** id (`PREFIX-123`) or **internal** numeric
+id (`123`). Route it with the existing helper — never pass the raw id straight to a
+param:
+
+```ts
+testCaseIdParam(id)   // → { testcaseexternalid: 'PREFIX-123' }  or  { testcaseid: '123' }
 ```
-'ID of the resource to delete (use query_resources to find resource ID)'
-'Array of venue IDs (use get_venues to get venue IDs)'
+
+`EXTERNAL_TC_ID` / `parseTestCaseId` back it. Sending a numeric id as
+`testcaseexternalid` resolves to the **wrong case** (this was bug #80). Any new tool
+that takes a case id uses `testCaseIdParam`.
+
+## Field conventions (match existing descriptions)
+
+- **HTML** in `summary`, `steps[].actions`, `steps[].expected_results`,
+  `preconditions` — TestLink stores/renders these as HTML.
+- **Coded enums** — use the documented maps and state them in the tool description:
+  `importance` 1=low / 2=medium / 3=high; `execution_type` 1=manual / 2=automated;
+  execution status `p`=pass / `f`=fail / `b`=blocked. Prefer `Constants` from
+  `testlink-xmlrpc` where it provides them.
+- Validate inputs with the existing helpers (`validateNonEmptyString`, etc.).
+
+## Synchronous, not async
+
+TestLink XML-RPC is plain request/response. There is **no** async/polling/retry model
+here — do not add `maxRetries`/`pollIntervalMs` or polling loops. A tool calls the
+client once and returns.
+
+## Tool descriptions are for the agent
+
+The description is how an AI agent learns to call the tool. Keep it actionable:
+
+```
+[verb] [what it does]. PREREQUISITE: [condition] (use [tool]).
+REQUIRED: [param] (use [tool] to get [param]). [destructive? warn].
 ```
 
-**Checklist:**
-- [ ] Description starts with clear action and purpose
-- [ ] Prerequisites listed with tool references
-- [ ] Required parameters explain how to obtain IDs
-- [ ] Destructive operations include warnings
-- [ ] Batch vs single operation scope is clear
+Reference the tool that produces each id (e.g. *"the internal id from
+`read_test_case`"*). Mark destructive operations (delete/overwrite) clearly.
 
----
+## Checklist
 
-## Phase 10: Summary
-
-### Report
-- Files modified and functions added
-- Pattern used as basis
-- Operation type and characteristics
-- Any deviations from standard patterns (with justification)
-
-### Testing Guidance
-- How to manually test the new tool
-- Expected input and output
-- Edge cases to verify
-- Suggest: `/ci-testcase` to generate automated tests
-
----
-
-## Key Principles
-
-1. **Consistency First**: Copy existing patterns exactly rather than inventing new approaches
-2. **No Assumptions**: Stop and ask when unclear
-3. **No Modifications**: Do not modify retry defaults, polling intervals, or error handling without approval
-4. **Pattern Matching**: Find the most similar existing tool and follow its structure
-5. **Question Everything**: If something seems inconsistent, investigate and ask
+- [ ] New `TestLinkAPI` method, wrapped in `handleAPICall`, modelled on the closest
+      existing one
+- [ ] Typed client method used; `_performRequest` only where a wrapper rejects valid
+      params or none exists — with a comment saying why
+- [ ] Case-id params routed through `testCaseIdParam`
+- [ ] HTML/enum/status conventions followed and spelled out in the description
+- [ ] Registry entry (`name` snake_case, `inputSchema`, required vs optional) + a
+      `switch` case
+- [ ] No async/polling machinery added
+- [ ] Exercised through the `cicd/tests` end-to-end flow (see `integration-test-flow`)
+      — embed it in the connected flow, don't add a standalone test
