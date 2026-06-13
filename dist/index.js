@@ -130,7 +130,11 @@ class TestLinkAPI {
             updateParams.executiontype = data.execution_type;
         if (data.status !== undefined)
             updateParams.status = data.status;
-        return this.handleAPICall(() => this.client.updateTestCase(updateParams));
+        // Call via the generic dispatcher, not the typed client.updateTestCase: the
+        // lib wrapper hard-requires testcaseexternalid and would reject a numeric
+        // testcaseid before it reaches the server (which accepts either via
+        // checkTestCaseIdentity). Same approach as deleteTestCase/assignRequirements.
+        return this.handleAPICall(() => this.client._performRequest('updateTestCase', updateParams));
     }
     async createTestCase(data) {
         if (!data || typeof data !== 'object') {
@@ -287,7 +291,11 @@ class TestLinkAPI {
         validateTestCaseId(data.testcaseid);
         validateSuiteId(data.testplanid);
         validateProjectId(data.testprojectid);
-        return this.handleAPICall(() => this.client.addTestCaseToTestPlan({
+        // Generic dispatcher, not the typed client.addTestCaseToTestPlan: the lib
+        // wrapper hard-requires testcaseexternalid and would reject a numeric
+        // testcaseid before it reaches the server (which accepts either via
+        // checkTestCaseIdentity).
+        return this.handleAPICall(() => this.client._performRequest('addTestCaseToTestPlan', {
             testprojectid: parseInt(data.testprojectid),
             testplanid: parseInt(data.testplanid),
             ...testCaseIdParam(data.testcaseid),
