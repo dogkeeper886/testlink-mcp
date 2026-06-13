@@ -1,36 +1,38 @@
-# STORY-009: Port latest Anthropic ideas into the project tooling
+# STORY-009: Adopt the Anthropic SDK for the test runner's LLM judge
 
 ## User Story
 
 As a maintainer of testlink-mcp,
-I want the project to adopt the latest Anthropic / Claude Code ideas already proven
-in agent-workflows-runner,
-So that the repo's automation stays current instead of falling behind newer patterns.
+I want the CI test runner's LLM judge to run on the Anthropic SDK like the rest of
+the agent-workflows family,
+So that the repo uses the same standard, Claude-powered evaluation instead of a
+one-off, divergent model integration.
 
 ## The Need
 
-agent-workflows-runner (renamed from `test-framework-template`) has moved ahead on
-how it uses Claude Code (workflow
-patterns, skills, CI conventions). testlink-mcp should pull those forward rather
-than maintain an older style. The specific ideas to port are not pinned down yet —
-the maintainer flagged this briefly and wants the *how* settled at plan time.
+The test runner has an opt-in LLM judge that semantically evaluates test results.
+Today it talks to a local, hand-rolled model integration that diverged from how
+`agent-workflows-runner` (and the rest of the family) do it — through the standard
+**Anthropic SDK**. That divergence means the repo can't share the family's judge
+behaviour, model choices, or Anthropic-compatible endpoint configuration. The
+maintainer wants the judge brought onto the Anthropic SDK — a small, well-scoped
+port, not a CI overhaul.
 
 ## Success Looks Like
 
-- testlink-mcp's tooling reflects the current patterns the template uses, with no
-  obvious "this is the old way" gaps left behind.
-- The maintainer can point at the template and the repo and see them as the same
-  generation of tooling.
+- The test runner's LLM judge evaluates results through the Anthropic SDK (Claude),
+  matching the family.
+- Turning the LLM judge on behaves the same here as in agent-workflows-runner.
+- The default deterministic (simple) judge is unaffected — a normal suite run is
+  unchanged.
 
 ## Open Questions
 
-- **Primary input for the plan: compare the CI between this project and the target
-  project (`agent-workflows-runner`).** The diff in CI setup is the concrete signal
-  for what "latest ideas" means here — start there.
-- Which differences are intentional (TestLink/MCP-specific) vs. drift to be closed?
-- Does this overlap with STORY-008 (align .claude) — and if so, where's the seam?
-- Scope: tooling/CI patterns only, or also model IDs, skill-authoring, and
-  multi-agent conventions?
+- Keep a self-hosted/local option (via an Anthropic-compatible endpoint), or go
+  Claude-only?
+- Should the LLM judge run in CI (needs an API-key secret), or stay a local opt-in
+  with CI on the simple judge?
+- Which default judge model to standardize on?
 
 ## Status
 
