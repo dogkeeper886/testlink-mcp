@@ -41,7 +41,7 @@ to the judge, not a CI overhaul.
 ## Status
 
 - Created: 2026-06-12
-- Plan: #82
+- Plan: #86 (judge = ACP client; supersedes the stale Anthropic-SDK plan #82, now closed)
 - Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, now moot under ACP),
   #86 (open — judge = ACP client; supersedes #83)
 - #86 is **planned** as **judge = ACP client (Option A)**: the reasoning judge becomes an
