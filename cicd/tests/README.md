@@ -150,8 +150,33 @@ npx tsx src/cli.ts list                       # list all tests
 - **Simple judge** (default): a test passes when every step exits 0, all
   `expectPatterns` match, no `rejectPatterns` match, and no `ERROR_PATTERNS`
   (`config.ts`) appear in the logs (minus `ERROR_EXCLUSIONS`, e.g. `isError`).
-- **LLM judge** (opt-in, `--llm`): sends each result + `criteria` to an Ollama
-  model for a semantic verdict. Final dual-mode verdict = `simple && llm`.
+  This is the always-on correctness floor.
+- **Agent judge** (opt-in, `JUDGE_MODE=dual`): sends each result + `criteria` to an
+  ACP agent for a semantic verdict — catching silent failures exit codes miss.
+  Final dual-mode verdict = `simple && agent` (both must pass).
+
+#### Configuring the agent judge
+
+The agent judge is an [Agent Client Protocol](https://agentclientprotocol.com) (ACP)
+client: it spawns an agent process and asks it to judge each result. **Auth is the
+agent's job — the default runs keyless on a Claude subscription, no API key.**
+
+```bash
+JUDGE_MODE=dual npm test        # opt in the agent judge (env, not a flag)
+```
+
+| Env | Default | Meaning |
+|-----|---------|---------|
+| `JUDGE_MODE` | `simple` | `simple` = deterministic only; `dual` = also run the agent judge |
+| `JUDGE_AGENT` | (bundled) | Command launching the ACP agent. Unset → the bundled Claude agent (`@agentclientprotocol/claude-agent-acp`). Set it to another ACP agent's command to swap models/vendors — **config, not code.** |
+
+- **Auth (keyless):** the default Claude agent uses `~/.claude` locally and
+  `CLAUDE_CODE_OAUTH_TOKEN` in CI. No `ANTHROPIC_API_KEY` needed. The model is
+  chosen by the agent, not the runner.
+- **Another model:** point `JUDGE_AGENT` at that vendor's ACP agent command, e.g.
+  `JUDGE_AGENT="gemini-acp" JUDGE_MODE=dual npm test`. No code change.
+- If the agent can't be reached or can't answer, the run falls back to the simple
+  judge — the simple judge is always the floor.
 
 ---
 

@@ -42,9 +42,10 @@ Examine the current working directory:
 Prompt the user with detected defaults:
 
 - **Project name** — from package.json or ask
-- **Judge mode** — default: `simple` (deterministic, no model); `dual` opts in the LLM judge
-- **LLM judge model** — default: `claude-haiku-4-5-20251001` (used in dual mode)
-- **LLM judge endpoint** — optional Anthropic-compatible base URL (unset → hosted Anthropic API)
+- **Judge mode** — default: `simple` (deterministic, no model); `dual` opts in the agent judge
+- **Judge agent** (`JUDGE_AGENT`) — command launching the ACP agent; unset → the bundled
+  Claude ACP agent, keyless via `~/.claude` / `CLAUDE_CODE_OAUTH_TOKEN`. Set to another
+  ACP agent's command to swap models/vendors (the model lives in the agent).
 - **Include MCP client?** — auto-yes if MCP SDK detected
 - **Include Docker log collector?** — auto-yes if docker-compose found
 - **Install Claude skills?** — recommend yes
@@ -61,7 +62,7 @@ Prompt the user with detected defaults:
 
 2. **Copy files** from template source to current project:
    - Core: `cli.ts`, `config.ts`, `types.ts`, `loader.ts`, `executor.ts`
-   - Judges: `judge/simple-judge.ts`, `judge/llm-judge.ts`, `judge/index.ts`
+   - Judges: `judge/simple-judge.ts`, `judge/agent-judge.ts`, `judge/index.ts`
    - Reporters: `reporter/console.ts`, `reporter/json.ts`, `reporter/index.ts`
    - Supporting: `package.json`, `tsconfig.json`
    - Conditional: `log-collector.ts` (Docker), `mcp-client.ts` (MCP)

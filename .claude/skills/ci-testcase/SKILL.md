@@ -47,7 +47,7 @@ Create test case file(s) in `cicd/tests/testcases/<suite>/` using this format:
 id: TC-[SUITE]-[NUMBER]
 name: Descriptive test name
 suite: build|integration|e2e
-goal: One-line test objective for LLM judge
+goal: One-line test objective for agent judge
 priority: 1-10 (lower = runs first)
 timeout: 30000
 dependencies: []
@@ -65,7 +65,7 @@ steps:
       varName: "json.path"
 
 criteria: |
-  Human-readable criteria for LLM judge evaluation.
+  Human-readable criteria for agent judge evaluation.
 ```
 
 **Suite guidelines:**

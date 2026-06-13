@@ -42,22 +42,21 @@ Both patterns use `test-run.yml` as the single reusable job.
 
 **Dual triggers:** Each workflow supports both `workflow_dispatch` (manual, with dropdowns) and `workflow_call` (callable from pipeline). This lets you run features independently or as part of the full CI.
 
-**Judge mode dropdown:** Each workflow offers `simple` (default — fast, deterministic, no model) or `dual` (simple + the opt-in LLM judge). The workflow sets `LLM_JUDGE_MODE` from this input; the runner is simple-only unless it reads `dual`.
+**Judge mode dropdown:** Each workflow offers `simple` (default — fast, deterministic, no model) or `dual` (simple + the opt-in agent judge). The workflow sets `JUDGE_MODE` from this input; the runner is simple-only unless it reads `dual`.
 
 ## Environment Variables
 
-The LLM judge reaches its model through the Anthropic SDK, so any Anthropic-compatible
-endpoint (the hosted API or a local one) is a matter of configuration. Set these via
-GitHub repository variables/secrets (`Settings > Variables/Secrets > Actions`):
+The agent judge is an ACP client: it spawns an agent that owns its own model and auth,
+so swapping models/vendors is configuration, not code. Set these via GitHub repository
+variables/secrets (`Settings > Variables/Secrets > Actions`):
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `LLM_JUDGE_MODE` | `simple` (default) or `dual` (opt in the LLM judge) | `dual` |
-| `LLM_JUDGE_MODEL` | Model for judging | `claude-haiku-4-5-20251001` |
-| `LLM_JUDGE_URL` | Base URL of an Anthropic-compatible endpoint (unset → hosted Anthropic API) | `http://localhost:11434` |
-| `ANTHROPIC_API_KEY` | API key for the hosted API (secret; a placeholder works for a local endpoint that ignores auth) | `sk-ant-...` |
+| `JUDGE_MODE` | `simple` (default) or `dual` (opt in the agent judge) | `dual` |
+| `JUDGE_AGENT` | Command launching the ACP agent (unset → the bundled Claude agent). Swap models/vendors here — config, not code. | `gemini-acp` |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Subscription token for the default Claude agent in CI (secret). No `ANTHROPIC_API_KEY` needed. | `(secret)` |
 
-**Local endpoint:** To judge against a local Anthropic-compatible model server, point `LLM_JUDGE_URL` at it. Keeping the judge on a separate endpoint from any model your project itself tests avoids resource contention.
+**Keyless by default:** the bundled Claude agent authenticates via `~/.claude` locally or `CLAUDE_CODE_OAUTH_TOKEN` in CI — the runner sets no API key and the model lives in the agent. To judge with a different model, point `JUDGE_AGENT` at that vendor's ACP agent command.
 
 ## Legacy Workflows
 

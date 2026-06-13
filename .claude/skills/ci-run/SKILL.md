@@ -1,13 +1,13 @@
 ---
 name: ci-run
-description: Execute test cases with the simple judge by default, or opt in the LLM judge
+description: Execute test cases with the simple judge by default, or opt in the agent judge
 user-invocable: true
 ---
 
 # Run Test Cases
 
 Execute test cases and evaluate results. The simple (deterministic) judge is the
-default verdict; the LLM judge is an opt-in second opinion (`LLM_JUDGE_MODE=dual`).
+default verdict; the agent judge is an opt-in second opinion (`JUDGE_MODE=dual`).
 
 ```
 $ARGUMENTS
@@ -91,14 +91,16 @@ npm test -- --suite integration # Specific suite
 npm test -- --id TC-INT-001     # Specific test
 npm test -- --tag auth          # Tests tagged 'auth'
 npm test -- --dry-run           # Preview only
-LLM_JUDGE_MODE=dual npm test    # Opt in the LLM judge (env, not a flag)
+JUDGE_MODE=dual npm test        # Opt in the agent judge (env, not a flag)
 ```
 
 **Environment variables for CI:**
-- `LLM_JUDGE_MODE` — `simple` (default) or `dual` (opt in the LLM judge)
-- `LLM_JUDGE_MODEL` — Model for judging (default: `claude-haiku-4-5-20251001`)
-- `LLM_JUDGE_URL` — Base URL of an Anthropic-compatible endpoint (unset → hosted Anthropic API)
-- `ANTHROPIC_API_KEY` — API key for the hosted API
+- `JUDGE_MODE` — `simple` (default) or `dual` (opt in the agent judge)
+- `JUDGE_AGENT` — command that launches the ACP agent (unset → the bundled Claude
+  ACP agent). Set it to another ACP agent's command to swap models/vendors — config,
+  not code. The model lives in the agent, not here.
+- Auth is the agent's concern: the default Claude agent runs keyless via `~/.claude`
+  (local) or `CLAUDE_CODE_OAUTH_TOKEN` (CI). No `ANTHROPIC_API_KEY` required.
 
 ---
 
