@@ -11,12 +11,15 @@ if (!TESTLINK_API_KEY) {
     process.exit(1);
 }
 // Input validation helpers
+// A TestLink external id is PREFIX-NUMBER (e.g. MFT-20); the captured group is the
+// numeric part. Single source of truth for external-vs-internal classification.
+const EXTERNAL_TC_ID = /^[A-Za-z0-9]+-(\d+)$/;
 function parseTestCaseId(id) {
     if (!id || typeof id !== 'string') {
         throw new Error('Test case ID must be a non-empty string');
     }
     // Handle external ID format (PREFIX-123) - extract numeric part
-    const externalIdMatch = id.match(/^[A-Za-z0-9]+-(\d+)$/);
+    const externalIdMatch = id.match(EXTERNAL_TC_ID);
     if (externalIdMatch) {
         return externalIdMatch[1];
     }
@@ -34,7 +37,7 @@ function validateTestCaseId(id) {
 // TestLink's checkTestCaseIdentity accepts either — sending a numeric internal id
 // as testcaseexternalid would resolve it to the wrong case.
 function testCaseIdParam(id) {
-    return /^[A-Za-z0-9]+-\d+$/.test(id)
+    return EXTERNAL_TC_ID.test(id)
         ? { testcaseexternalid: id }
         : { testcaseid: parseTestCaseId(id) };
 }
@@ -713,7 +716,7 @@ const tools = [
                     type: 'object',
                     description: 'Test case assignment data',
                     properties: {
-                        testcaseid: { type: 'string', description: 'Test case external ID (e.g., GPDL-1)' },
+                        testcaseid: { type: 'string', description: 'Test case ID — numeric (internal) or external (PREFIX-123); both accepted' },
                         testplanid: { type: 'string', description: 'Test plan ID' },
                         testprojectid: { type: 'string', description: 'Test project ID' },
                         version: { type: 'number', description: 'Test case version (optional, defaults to 1)' },
@@ -949,7 +952,7 @@ const tools = [
                     type: 'object',
                     description: 'Requirement coverage assignment',
                     properties: {
-                        test_case_id: { type: 'string', description: 'Test case external ID (PREFIX-123)' },
+                        test_case_id: { type: 'string', description: 'Test case ID — numeric (internal) or external (PREFIX-123); both accepted' },
                         project_id: { type: 'string', description: 'Test project ID' },
                         reqspec_id: { type: 'string', description: 'Requirement specification ID' },
                         requirement_ids: { type: 'array', description: 'Requirement IDs to assign', items: { type: 'string' } }
