@@ -1,45 +1,49 @@
-# STORY-009: Adopt the Anthropic SDK for the test runner's LLM judge
+# STORY-009: Run the test runner's reasoning judge on Claude — like the family, keyless, model-swappable
 
 ## User Story
 
 As a maintainer of testlink-mcp,
-I want the CI test runner's LLM judge to run on the Anthropic SDK like the rest of
-the agent-workflows family,
-So that the repo uses the same standard, Claude-powered evaluation instead of a
-one-off, divergent model integration.
+I want the test runner's reasoning judge to evaluate results with Claude the same
+standard way the rest of the agent-workflows family does — runnable on my Claude
+subscription without a separate API key, and able to gain another model by
+configuration,
+So that the repo shares the family's evaluation instead of a one-off, divergent
+integration I have to maintain by hand.
 
 ## The Need
 
-The test runner has an opt-in LLM judge that semantically evaluates test results.
-Today it talks to a local, hand-rolled model integration that diverged from how
-`agent-workflows-runner` (and the rest of the family) do it — through the standard
-**Anthropic SDK**. That divergence means the repo can't share the family's judge
-behaviour, model choices, or Anthropic-compatible endpoint configuration. The
-maintainer wants the judge brought onto the Anthropic SDK — a small, well-scoped
-port, not a CI overhaul.
+The test runner has an opt-in reasoning judge that semantically evaluates test
+results (alongside the always-on deterministic simple judge). Today it talks to a
+local, hand-rolled model integration that diverged from how `agent-workflows-runner`
+(and the rest of the family) evaluate — with Claude. That divergence costs three
+ways: the repo can't share the family's evaluation behaviour; running it needs a paid
+API key even though the maintainer already has a Claude subscription; and supporting a
+different model means writing new backend code. The maintainer wants the judge brought
+onto the family's standard Claude evaluation — runnable keyless on a subscription, and
+extensible to other models by configuration rather than code — as a well-scoped change
+to the judge, not a CI overhaul.
 
 ## Success Looks Like
 
-- The test runner's LLM judge evaluates results through the Anthropic SDK (Claude),
-  matching the family.
-- Turning the LLM judge on behaves the same here as in agent-workflows-runner.
+- The reasoning judge evaluates results with Claude, matching how the family does it.
+- It runs on the maintainer's Claude subscription without a separate API key.
+- Adding a different model/source is a configuration change, not new backend code.
 - The default deterministic (simple) judge is unaffected — a normal suite run is
   unchanged.
 
 ## Open Questions
 
-- Keep a self-hosted/local option (via an Anthropic-compatible endpoint), or go
-  Claude-only?
-- Should the LLM judge run in CI (needs an API-key secret), or stay a local opt-in
-  with CI on the simple judge?
-- Which default judge model to standardize on?
+- How far should non-subscription / non-Claude sources be supported out of the box,
+  versus left to configuration? (mechanism + trade-offs settled on the plan, #86)
+- Should the reasoning judge run in CI, or stay a local opt-in with CI on the simple
+  judge? (CI auth approach settled on #86)
 
 ## Status
 
 - Created: 2026-06-12
 - Plan: #82
-- Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, decision-gated),
-  #86 (open — re-port to the Agent SDK for keyless subscription auth; corrects #83)
+- Issues: #83 (done — PR #85 merged, raw @anthropic-ai/sdk), #84 (open — CI key, now moot under ACP),
+  #86 (open — judge = ACP client; supersedes #83)
 - #86 is **planned** as **judge = ACP client (Option A)**: the reasoning judge becomes an
   Agent Client Protocol client (`@agentclientprotocol/sdk`) that spawns a configured ACP
   agent (Claude `claude-agent-acp` by default; Gemini/others by config) and parses its
