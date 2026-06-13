@@ -42,6 +42,25 @@ export class AgentJudge {
   constructor(agentCmd: string = CONFIG.judge.agent, cwd: string = process.cwd()) {
     this.agentCmd = agentCmd;
     this.cwd = cwd;
+    // Register the orphan-guard once per instance (not per spawn) — the session
+    // is re-spawned on timeouts, and re-registering here would leak listeners.
+    process.once('exit', () => this.kill());
+  }
+
+  /**
+   * Await a promise but reject if it outruns CONFIG.judge.timeout — so a hung
+   * handshake or turn fails the judge rather than wedging the whole run.
+   */
+  private async withTimeout<T>(p: Promise<T>, label: string): Promise<T> {
+    let timer: NodeJS.Timeout;
+    const timeout = new Promise<never>((_, rej) => {
+      timer = setTimeout(() => rej(new Error(`${label} exceeded ${CONFIG.judge.timeout}ms`)), CONFIG.judge.timeout);
+    });
+    try {
+      return await Promise.race([p, timeout]);
+    } finally {
+      clearTimeout(timer!);
+    }
   }
 
   /**
@@ -79,8 +98,6 @@ export class AgentJudge {
 
     const child = this.spawnAgent();
     this.child = child;
-    // Never orphan the agent — kill it when this process exits by any path.
-    process.once('exit', () => this.kill());
 
     const stream = ndJsonStream(
       Writable.toWeb(child.stdin!) as WritableStream<Uint8Array>,
@@ -109,13 +126,23 @@ export class AgentJudge {
     };
 
     this.conn = new ClientSideConnection(() => client, stream);
-    await this.conn.initialize({
-      protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-      clientInfo: { name: 'testlink-mcp-judge', version: '1.0.0' },
-    });
-    const session = await this.conn.newSession({ cwd: this.cwd, mcpServers: [] });
-    this.sessionId = session.sessionId;
+    try {
+      await this.withTimeout(this.conn.initialize({
+        protocolVersion: PROTOCOL_VERSION,
+        clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
+        clientInfo: { name: 'testlink-mcp-judge', version: '1.0.0' },
+      }), 'agent initialize');
+      const session = await this.withTimeout(
+        this.conn.newSession({ cwd: this.cwd, mcpServers: [] }),
+        'agent session/new',
+      );
+      this.sessionId = session.sessionId;
+    } catch (e) {
+      // A spawnable-but-silent agent would otherwise leave a live child and a
+      // pending handshake. Tear it down so isAvailable() fails over cleanly.
+      this.kill();
+      throw e;
+    }
   }
 
   /** Tear down the agent process. Safe to call more than once. */
@@ -127,13 +154,19 @@ export class AgentJudge {
   }
 
   /**
-   * Probe the configured agent: spawn + initialize + open a session. Returns
-   * false on any spawn/connect error so the caller can fall back to the simple
-   * judge. On success the session is kept open for judgeResults().
+   * Probe the configured agent: spawn, open a session, and run one bounded
+   * throwaway turn. The warmup turn matters — a successful handshake doesn't
+   * prove the agent can actually answer (e.g. broken/expired auth surfaces only
+   * at prompt time), so without it a misauthed agent would pass the probe and
+   * every test would be marked FAIL instead of falling back to the simple judge.
+   * Returns false on any failure. On success the session is kept open for
+   * judgeResults().
    */
   async isAvailable(): Promise<boolean> {
     try {
       await this.ensureStarted();
+      const reply = await this.promptAgent('Reply with exactly: ok');
+      if (!reply.trim()) throw new Error('agent produced no output on probe turn');
       return true;
     } catch (error) {
       process.stderr.write(`  [judge] Agent not reachable: ${error}\n`);
@@ -224,23 +257,21 @@ export class AgentJudge {
 
   /**
    * Run one prompt turn through the agent and return its raw reply text.
-   * Bounded by CONFIG.judge.timeout so a hung agent fails the one test rather
-   * than the whole run.
+   * Bounded by CONFIG.judge.timeout. On timeout/failure the turn isn't actually
+   * cancelled — it keeps running on the session and its late chunks would bleed
+   * into the next test's reply (which shares this.turnText). So we tear the
+   * agent down here; the next test re-spawns a clean session via ensureStarted.
    */
   private async promptAgent(prompt: string): Promise<string> {
     this.turnText = '';
-    const turn = this.conn!.prompt({
-      sessionId: this.sessionId!,
-      prompt: [{ type: 'text', text: prompt }],
-    });
-    let timer: NodeJS.Timeout;
-    const timeout = new Promise<never>((_, rej) => {
-      timer = setTimeout(() => rej(new Error(`agent turn exceeded ${CONFIG.judge.timeout}ms`)), CONFIG.judge.timeout);
-    });
     try {
-      await Promise.race([turn, timeout]);
-    } finally {
-      clearTimeout(timer!);
+      await this.withTimeout(
+        this.conn!.prompt({ sessionId: this.sessionId!, prompt: [{ type: 'text', text: prompt }] }),
+        'agent turn',
+      );
+    } catch (e) {
+      this.kill();
+      throw e;
     }
     return this.turnText;
   }
@@ -324,8 +355,6 @@ export class AgentJudge {
     const allJudgments: Judgment[] = [];
 
     try {
-      await this.ensureStarted();
-
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         process.stderr.write(
@@ -333,6 +362,9 @@ export class AgentJudge {
         );
 
         try {
+          // Idempotent when the session is alive; re-spawns a clean one if a
+          // prior test's timeout tore the agent down.
+          await this.ensureStarted();
           const judgment = await this.judgeOne(result);
           allJudgments.push(judgment);
           process.stderr.write(`  [judge] ${result.testCase.id}: ${judgment.pass ? 'PASS' : 'FAIL'} — ${judgment.reason}\n`);
