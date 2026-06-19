@@ -89,6 +89,21 @@ execution that *records* a result.
 | **Requirements** (7) | `create_requirement_specification`, `delete_requirement_specification`, `list_requirement_specifications`, `create_requirement`, `get_requirement`, `list_requirements`, `assign_requirements` |
 | **Projects** (1) | `list_projects` |
 
+## Reusable skills
+
+On top of the raw tools, the repo ships three **Claude skills** — packaged workflows your
+assistant invokes when you ask:
+
+| Skill | What it does |
+|-------|--------------|
+| **`testlink-sync`** | Turns a source document — a spec, a GitHub issue, a folder of markdown test cases — into TestLink content: requirements, suites, cases, plans, builds. |
+| **`testlink-review`** | Reads the written content back and verifies it met your goal — the right entities exist, fields are correct and well-formed. |
+| **`testlink-format`** | The HTML markup reference for TestLink's rich-text fields, used by the other two. |
+
+**To use them:** copy the skill folders from [`.claude/skills/`](.claude/skills/) into your
+project's `.claude/skills/` (or `~/.claude/skills/` for every project), then just ask —
+*"Sync the test cases in docs/tests/ into TestLink, then review them."*
+
 ## Configuration
 
 | Variable | Required | Description |
