@@ -6,15 +6,6 @@ description: |
   document is faithfully represented. Use after testlink-sync or any manual
   create/update in TestLink, before calling the work done. The review gate paired
   with testlink-sync.
-disable-model-invocation: true
-tools:
-  - testlink-mcp:list_projects
-  - testlink-mcp:list_test_suites
-  - testlink-mcp:list_test_cases_in_suite
-  - testlink-mcp:read_test_case
-  - testlink-mcp:get_test_cases_for_test_plan
-  - testlink-mcp:list_requirements
-  - testlink-mcp:list_builds
 ---
 
 # testlink-review

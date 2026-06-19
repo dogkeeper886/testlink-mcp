@@ -6,7 +6,6 @@ description: |
   bodies must be written with HTML tags and escaped entities — not plain text or
   \n. Use whenever building or updating a TestLink test case or suite, and as the
   markup reference for testlink-sync.
-disable-model-invocation: true
 ---
 
 # testlink-format

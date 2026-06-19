@@ -6,24 +6,6 @@ description: |
   requirements, test suites, test plans, builds, and test cases. Use when a QA
   engineer wants to import, sync, upload, or push content into TestLink from a
   document. Pairs with testlink-review (verify) and testlink-format (markup).
-disable-model-invocation: true
-tools:
-  - testlink-mcp:list_projects
-  - testlink-mcp:list_test_suites
-  - testlink-mcp:create_test_suite
-  - testlink-mcp:update_test_suite
-  - testlink-mcp:list_test_cases_in_suite
-  - testlink-mcp:create_test_case
-  - testlink-mcp:update_test_case
-  - testlink-mcp:read_test_case
-  - testlink-mcp:list_requirements
-  - testlink-mcp:create_requirement
-  - testlink-mcp:create_requirement_specification
-  - testlink-mcp:assign_requirements
-  - testlink-mcp:create_test_plan
-  - testlink-mcp:add_test_case_to_test_plan
-  - testlink-mcp:get_test_cases_for_test_plan
-  - testlink-mcp:create_build
 ---
 
 # testlink-sync
