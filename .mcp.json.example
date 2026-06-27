@@ -1,8 +1,28 @@
 {
   "mcpServers": {
     "testlink": {
-      "command": "node",
-      "args": ["/absolute/path/to/testlink-mcp/dist/index.js"],
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "TESTLINK_URL",
+        "-e",
+        "TESTLINK_API_KEY",
+        "dogkeeper886/testlink-mcp:latest"
+      ],
+      "env": {
+        "TESTLINK_URL": "http://your-testlink-server/testlink",
+        "TESTLINK_API_KEY": "your_api_key_here"
+      }
+    },
+    "testlink-dev": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "/absolute/path/to/testlink-mcp/src/index.ts"
+      ],
       "env": {
         "TESTLINK_URL": "http://your-testlink-server/testlink",
         "TESTLINK_API_KEY": "your_api_key_here"
