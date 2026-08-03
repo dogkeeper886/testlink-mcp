@@ -61,3 +61,8 @@ before implementation starts.
   plan found uncovered.
 - Issues: #98 (align server + runner on `^1.30.0`) — deliberately one task; the
   verification is the bump's acceptance evidence, not separable work.
+- **PR #99 open, awaiting human review.** Dependency-only as predicted: `src/` untouched,
+  19/19 flow green, no test added or edited, all three manual gate checks pass.
+- Follow-ups surfaced, not in scope: the low-level `Server` API is `@deprecated` in 1.30.0
+  in favour of `McpServer`; v1's support window floor is ~2027-01 and should be confirmed
+  before the next bump.
