@@ -46,6 +46,15 @@ Fits in the qa-workflow:
 
 ---
 
+## OUTPUT
+
+The test docs written. Trace carries each doc's path. Reported per
+`.claude/rules/agent-report.md` — the verdict first, and a section with nothing to
+report says so.
+
+
+---
+
 ## API Notes
 
 - Reuse is the point of the store: `search_step` (via `make query`) makes a vetted
