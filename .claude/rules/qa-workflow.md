@@ -48,3 +48,10 @@ No producer ships without a review covering its output.
   run layer**. Reusing vetted steps (a search index) is an **optional** project enhancement.
 
 The format a test doc must follow is `docs/tests/README.md`.
+
+## Project-specific values
+
+The `docs/tests/` path, the `test-plan` label + colour, the `TS-`/`TC-` id schemes, the
+test-doc front-matter fields, the drift anchor, and the default status are **not** owned
+by the `qw-*` commands — they resolve from `.claude/rules/project-profile.md`. The values
+a command shows are the defaults; change them in the profile, not the command.
