@@ -74,6 +74,18 @@ function validateSuiteId(id: string): void {
   }
 }
 
+// TestLink stores an api_key column on exactly two tables — testprojects and
+// testplans — and returns it with the rest of the row. An MCP client has no use
+// for a credential, and the payload lands in an LLM's context, so strip it on the
+// way out (#100). Callers pass raw XML-RPC results, which are "" (not []) when
+// empty — hence the Array guard.
+function stripApiKey(rows: any): any {
+  if (!Array.isArray(rows)) {
+    return rows;
+  }
+  return rows.map(({ api_key, ...rest }: any) => rest);
+}
+
 function validateNonEmptyString(value: string, fieldName: string): void {
   if (!value || typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string`);
@@ -194,7 +206,7 @@ class TestLinkAPI {
   }
 
   async getTestProjects() {
-    return this.handleAPICall(() => this.client.getProjects());
+    return stripApiKey(await this.handleAPICall(() => this.client.getProjects()));
   }
 
 
@@ -290,9 +302,9 @@ class TestLinkAPI {
 
   async getTestPlans(projectId: string) {
     validateProjectId(projectId);
-    return this.handleAPICall(() => this.client.getProjectTestPlans({
+    return stripApiKey(await this.handleAPICall(() => this.client.getProjectTestPlans({
       testprojectid: parseInt(projectId)
-    }));
+    })));
   }
 
   async createTestPlan(data: any) {
