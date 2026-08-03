@@ -15,7 +15,10 @@
     "test:s6": "tsx src/cli.ts run --suite s6-execution",
     "test:s7": "tsx src/cli.ts run --suite s7-requirements",
     "list": "tsx src/cli.ts list",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/cli.ts",
+    "audit-bind": "tsx src/audit-bind.ts",
+    "drift": "tsx src/drift.ts",
+    "port-yaml": "tsx src/port-yaml.ts"
   },
   "dependencies": {
     "@agentclientprotocol/claude-agent-acp": "^0.44.0",
