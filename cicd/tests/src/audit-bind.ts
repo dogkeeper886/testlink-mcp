@@ -13,7 +13,7 @@
  * Run: npm run audit-bind
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readScenario, scenarioFiles } from './testdoc.js';
 
@@ -79,7 +79,10 @@ export function auditBindings(): BindFinding[] {
 }
 
 // Run as a script: print findings, exit non-zero if anything is unbound.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}` — import.meta.url percent-encodes, so a
+// checkout path containing a space or non-ASCII char would never match, the block
+// would silently not run, and the gate would print nothing and exit 0.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const findings = auditBindings();
   for (const f of findings) {
     console.log(`${f.bound ? 'bound  ' : 'UNBOUND'}  ${f.doc} ${f.tc} — ${f.detail}`);

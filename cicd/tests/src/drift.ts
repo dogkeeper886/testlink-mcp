@@ -64,8 +64,14 @@ const unbound = auditBindings().filter((b) => !b.bound);
 for (const s of stale) console.log(`STALE    ${s.doc} — ${s.detail}`);
 for (const u of unbound) console.log(`UNBOUND  ${u.doc} ${u.tc} — ${u.detail}`);
 
-// A clean run over zero docs is "nothing checked", not "all good" — surface it.
-if (docCount === 0) console.log('WARNING: no test docs in docs/tests/ — the drift gate checked nothing.');
+// A clean run over zero docs is "nothing checked", not "all good" — and a warning on
+// stdout is not a gate. Fail: if docs/tests/ is renamed, moved, or absent in the
+// checkout, a green exit here would assert "these tests still match their stories"
+// having verified nothing at all.
+if (docCount === 0) {
+  console.log('FAIL: no test docs in docs/tests/ — the drift gate checked nothing.');
+  process.exit(1);
+}
 
 const problems = stale.length + unbound.length;
 console.log(`\n${docCount} doc(s): ${stale.length} stale, ${unbound.length} unbound`);
