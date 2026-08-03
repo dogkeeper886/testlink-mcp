@@ -55,4 +55,9 @@ before implementation starts.
 ## Status
 
 - Created: 2026-08-03
-- Issues: none
+- Plan: #97 — **study done**, planned as a **v1 refresh to `^1.30.0`** (drop-in; every
+  symbol `src/index.ts` imports is still exported). v2 / `2026-07-28` deferred: it would
+  rewrite all 27 tool declarations and the runner's client, on the two surfaces the QA
+  plan found uncovered.
+- Issues: #98 (align server + runner on `^1.30.0`) — deliberately one task; the
+  verification is the bump's acceptance evidence, not separable work.
