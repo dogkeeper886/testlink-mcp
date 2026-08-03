@@ -1,5 +1,5 @@
 ---
-id: TS-04
+id: TS-01
 title: A test plan is created and the flow case is linked to it
 namespace: testlink-mcp
 story: STORY-004

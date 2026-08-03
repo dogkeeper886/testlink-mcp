@@ -5,6 +5,7 @@
  * reading of the format — two parsers would be their own drift risk.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 export interface TestCase {
   tc: string;        // "TC-01"
@@ -44,10 +45,25 @@ function tableCells(row: string): string[] {
     .map((c) => c.replace(/\\\|/g, '|').trim());
 }
 
-/** The scenario docs in a docs/tests/ dir, in stable order ([] if the dir is absent). */
+/**
+ * The scenario docs under a docs/tests/ dir, in stable order ([] if absent).
+ *
+ * Recurses one concern deeper than a flat listing on purpose: docs are grouped by
+ * story (docs/tests/STORY-001/TS-01-….md) so a scenario id can restart at TS-01
+ * within each story. Paths are returned relative to `dir`, so callers keep using
+ * join(dir, f) and report a story-qualified name.
+ */
 export function scenarioFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'README.md').sort();
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      out.push(...scenarioFiles(join(dir, entry.name)).map((f) => join(entry.name, f)));
+    } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+      out.push(entry.name);
+    }
+  }
+  return out.sort();
 }
 
 /** Parse a scenario file into its front-matter and cases (each with its steps). */

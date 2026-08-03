@@ -1,5 +1,5 @@
 ---
-id: TS-07
+id: TS-01
 title: Requirements cover a case, then the flow tears itself down
 namespace: testlink-mcp
 story: STORY-007

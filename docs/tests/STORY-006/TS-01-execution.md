@@ -1,5 +1,5 @@
 ---
-id: TS-06
+id: TS-01
 title: A pass result is recorded and reads back as a pass
 namespace: testlink-mcp
 story: STORY-006

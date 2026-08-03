@@ -10,11 +10,21 @@ divergence — all via `npm --prefix cicd/tests` (`audit-bind` / `drift` / `port
 
 A **scenario** groups related **cases**, each case a sequence of **steps**.
 
+Docs are **grouped by story**, and a scenario id restarts at `TS-01` within each story — so
+`TS-01` always means "this story's first scenario", never a position in a global list.
+
 ```
 docs/tests/
-  TS-01-<slug>.md     # a scenario: TC-01, TC-02, … each with a Steps table
-  TS-02-….md
+  STORY-001/
+    TS-01-<slug>.md   # a scenario: TC-01, TC-02, … each with a Steps table
+    TS-02-….md        # this story's second scenario, if it has one
+  STORY-002/
+    TS-01-….md
 ```
+
+The directory is the story; the front-matter `story:` line still records it explicitly, because
+that is what `qw-drift` reads to resolve the drift anchor. The tooling walks the tree, so a doc
+must live under its story directory to be seen at all.
 
 - **TS** (scenario) — the file. Holds the front-matter and a `## Why this scenario exists`.
 - **TC** (case) — a `### TC-NN:` section. Has an objective, a **`Script:`** line (the bound
@@ -26,7 +36,7 @@ docs/tests/
 
 ```yaml
 ---
-id: TS-01                       # scenario id, unique within the namespace
+id: TS-01                       # scenario id, unique within its story (restarts per story)
 title: The server builds, starts, and containerises
 namespace: testlink-mcp         # which repo/tenant this test belongs to
 story: STORY-001                # the need this scenario verifies (→ docs/stories/STORY-001.md)

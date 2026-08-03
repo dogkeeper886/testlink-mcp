@@ -1,5 +1,5 @@
 ---
-id: TS-03
+id: TS-01
 title: Suites list, update, and nest correctly
 namespace: testlink-mcp
 story: STORY-003

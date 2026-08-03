@@ -1,5 +1,5 @@
 ---
-id: TS-02
+id: TS-01
 title: Test cases are created, read, and updated by either id form
 namespace: testlink-mcp
 story: STORY-002

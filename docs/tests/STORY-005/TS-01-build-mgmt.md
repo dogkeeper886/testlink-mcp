@@ -1,5 +1,5 @@
 ---
-id: TS-05
+id: TS-01
 title: A build is created under the plan and is listable
 namespace: testlink-mcp
 story: STORY-005
