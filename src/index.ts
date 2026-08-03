@@ -543,7 +543,10 @@ class TestLinkAPI {
 const server = new Server(
   {
     name: 'testlink-mcp-server',
-    version: '1.4.1',
+    // Keep in step with package.json — `npm version` does not touch this, so a
+    // release that bumps only package.json makes the server announce a stale
+    // version in its MCP handshake.
+    version: '1.5.0',
   },
   {
     capabilities: {
