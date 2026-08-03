@@ -42,6 +42,7 @@ namespace: testlink-mcp         # which repo/tenant this test belongs to
 story: STORY-001                # the need this scenario verifies (→ docs/stories/STORY-001.md)
 story_hash: 7474d8b6…           # sha256 of the linked story file at last sync (drift anchor)
 plan: 28                        # the [STORY-XXX] Test Plan issue it was authored from (optional)
+issue: 107                      # the issue this doc was written under (optional)
 status: green                   # green | stale | unbound  (maintained by qw-drift)
 ---
 ```

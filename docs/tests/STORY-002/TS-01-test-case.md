@@ -4,6 +4,7 @@ title: Test cases are created, read, and updated by either id form
 namespace: testlink-mcp
 story: STORY-002
 story_hash: 54ae0e60def1d6d3587178dd3878c4328687e7040a563fffa6a13feb8b7d18fd
+issue: 107
 status: green
 ---
 

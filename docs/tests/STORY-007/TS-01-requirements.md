@@ -4,6 +4,7 @@ title: Requirements cover a case, then the flow tears itself down
 namespace: testlink-mcp
 story: STORY-007
 story_hash: e91bff3102610855c4aba7e2aa5eff5c2486275c1bf8f0d4fdb4fd04e9f1244e
+issue: 107
 status: green
 ---
 
