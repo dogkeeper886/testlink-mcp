@@ -10,7 +10,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "testlink-xmlrpc": "^3.0.0"
