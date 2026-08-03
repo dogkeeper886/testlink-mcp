@@ -39,6 +39,8 @@ The plan is a **GitHub issue**, one per story, labelled `plan`, titled `[STORY-X
 Its body holds the researched approach, acceptance criteria, and the commands/files it
 expects to touch. It is the **parent** of the task issues (`dw-tasks` links each task back
 with "Part of #<plan>"), and the durable checkpoint that survives a lost session.
+Nothing auto-closes it — no PR targets a plan — so `dw-merge` closes it when the
+story's last task lands.
 
 Its review is a **human gate**: a person reads, comments, and approves the issue on GitHub
 before `dw-tasks` decomposes it — no `dw-*` command produces or gates it (mirrors the
