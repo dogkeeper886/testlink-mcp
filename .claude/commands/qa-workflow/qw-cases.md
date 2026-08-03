@@ -26,7 +26,7 @@ Fits in the qa-workflow:
         │
         ├─► Step 1: One file per scenario
         │   - Create docs/tests/TS-NN-<slug>.md with front-matter:
-        │       id, title, namespace, story (+ story_hash = sha256 of the story file),
+        │       id, title, namespace, story (+ the drift anchor the profile declares),
         │       issue, status: green
         │   - (Format and field meanings: docs/tests/README.md.)
         │
@@ -50,6 +50,8 @@ Fits in the qa-workflow:
 
 - Reuse is the point of the store: `search_step` (via `make query`) makes a vetted
   step findable so coverage converges instead of duplicating.
-- `story_hash`: `sha256sum docs/stories/STORY-XXX.md`.
+- Drift anchor: record whatever the profile declares, so a later gate can tell the story
+  has moved (default here: `story_hash`, the `sha256sum` of the story file — what `qw-drift`
+  reads). A project that detects drift another way declares that instead.
 - Producer paired with `/qw-review-cases`.
 ```
