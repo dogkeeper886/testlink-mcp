@@ -25,7 +25,7 @@ document's structure onto TestLink entities.
 
 | Document content | TestLink entity | Tools |
 |---|---|---|
-| Product / area under test | project (target — usually already exists) | `list_projects` to confirm |
+| Product / area under test | project (target — usually already exists) | `list_projects` to confirm, `create_project` if it doesn't |
 | Requirement / acceptance criterion | requirement (+ spec) | `create_requirement_specification`, `create_requirement`, `assign_requirements` |
 | Group of scenarios | test suite (nestable) | `create_test_suite`, `update_test_suite` |
 | A scenario | test case | `create_test_case`, `update_test_case` |

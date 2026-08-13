@@ -19,7 +19,7 @@ position in the flow.
 | Stage | What it does |
 |-------|--------------|
 | **s1** build & deploy | build the server, validate startup, build the Docker image (no TestLink data) |
-| **s2** test case | provision project + suite; `create_test_case`; read; update by external **and** internal id (#80) |
+| **s2** test case | provision project (`create_project`) + suite; `create_test_case`; read; update by external **and** internal id (#80) |
 | **s3** test suite | `list_test_suites` · `list_test_cases_in_suite` · `update_test_suite` |
 | **s4** test plan | `create_test_plan` (reuse-or-create) + `add_test_case_to_test_plan` · `get_test_cases_for_test_plan` |
 | **s5** build mgmt | `create_build` (left open for s6) + `list_builds` |
@@ -55,7 +55,7 @@ Every entity has a fixed name; all IDs are produced at runtime, never hardcoded.
 
 | Entity | Name | Notes |
 |--------|------|-------|
-| Project | `MCP Flow Tests` (prefix `MFT`) | provisioned out-of-band by `flow-provision.ts` (project creation isn't an MCP tool) |
+| Project | `MCP Flow Tests` (prefix `MFT`) | idempotent — reused by prefix |
 | Suite | `Flow Suite` | idempotent — reused by name |
 | Case | `Flow Case` | author `admin` (built-in default user) |
 | Plan | `Flow Plan` | idempotent (reuse-or-create) |
@@ -63,7 +63,7 @@ Every entity has a fixed name; all IDs are produced at runtime, never hardcoded.
 | Req spec | `Flow Req Spec` (`FLOW-RS`) | idempotent |
 | Requirement | `Flow Requirement` (`FLOW-REQ`) | idempotent; inside the spec |
 
-Everything except the project is created through the MCP tools under test.
+Every entity is created through the MCP tools under test.
 
 ## Running
 

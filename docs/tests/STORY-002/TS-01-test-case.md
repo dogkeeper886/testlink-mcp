@@ -27,8 +27,9 @@ parameter silently edits a different case (#80).
 
 | # | Action | Expected Result |
 |---|--------|-----------------|
-| 1 | Ensure the test project exists, out-of-band via `testlink-xmlrpc` (project creation is not an MCP tool) | `PROVISION_PROJECT_OK <id>`; id, name, and prefix published to `/tmp/tl-flow/` |
-| 2 | Ensure the top-level `Flow Suite` exists, reusing it by name if present | `PROVISION_SUITE_OK suite=<id>` |
+| 1 | Ensure the test project exists via `create_project`, reusing it by prefix if present | `PROVISION_PROJECT_OK <id> MFT`; id, name, and prefix published to `/tmp/tl-flow/` |
+| 2 | List the projects and find the provisioned one | `LIST_PROJECTS_OK` — the project is listed with its name and prefix |
+| 3 | Ensure the top-level `Flow Suite` exists, reusing it by name if present | `PROVISION_SUITE_OK suite=<id>` |
 
 ### TC-02: Create a test case
 
