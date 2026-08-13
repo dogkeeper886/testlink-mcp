@@ -33,7 +33,7 @@ that touch no TestLink data, so they run first and gate everything downstream.
 
 | # | Action | Expected Result |
 |---|--------|-----------------|
-| 1 | Start the server with `TESTLINK_API_KEY` unset, and assert the exit code is exactly 1 | `EXIT_OK` — the server self-exited via its own guard, not a timeout kill (124) or a missing-node error (127) |
+| 1 | Start the server with `TESTLINK_API_KEY` blank, and assert the exit code is exactly 1 | `EXIT_OK` — the server self-exited via its own guard, not a timeout kill (124) or a missing-node error (127) |
 | 2 | Syntax-check the entry point (`node --check dist/index.js`) | `MODULE_OK` |
 
 ### TC-03: Docker image build
