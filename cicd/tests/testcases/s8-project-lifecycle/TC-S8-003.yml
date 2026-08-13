@@ -1,28 +1,46 @@
 id: TC-S8-003
-name: "Scratch: delete by INTERNAL id"
+name: "Scratch: every remaining field by PREFIX, then one option on its own"
 suite: s8-project-lifecycle
 priority: 3
-timeout: 30000
+timeout: 60000
 dependencies: [TC-S8-002]
 
-# tl.deleteTestProject takes a prefix and nothing else; the tool resolves an
-# internal id to one so delete is not the single identity-taking tool that
-# refuses an id. This covers that resolution — paired with TC-S8-004, which
-# drives the same delete by prefix.
+# Two things at once, because they need the same fixture in sequence.
+#
+# Step 1 is the coverage step: the other identity form (a test case prefix), and
+# every field the tool exposes that TC-S8-002 did not change — notes, active,
+# visibility, colour, and all four project options.
+#
+# Step 2 is the sharper one. The options travel as a single struct and TestLink
+# stores them as one serialized blob, so "partial" has to hold *inside* it too:
+# naming one flag must leave the other three standing rather than resetting them
+# to the defaults of an options object built from scratch. Step 1 sets all four
+# on, so a single flag going off is unambiguous.
 
 steps:
-  - name: "Delete the throwaway project by its internal id, then prove it is gone"
+  - name: "Set notes, active, visibility, colour and all four options by prefix"
     command: |
-      SID=$(cat /tmp/tl-flow/scratch_project_id)
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"$SID\",\"confirm_prefix\":\"MSCR\"}" 2>/dev/null)
-      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete by internal id errored: '+r['content'][0]['text'][:120]; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('DELETE_BY_ID_OK')"
-      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; assert not any(p.get('prefix')=='MSCR' for p in d),'project still listed after delete'; print('GONE_OK')"
-    timeout: 20000
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts update_project "{\"project_id\":\"MSCR\",\"notes\":\"updated by TC-S8-003\",\"active\":false,\"is_public\":false,\"color\":\"#3366cc\",\"requirements_enabled\":true,\"test_priority_enabled\":true,\"automation_enabled\":true,\"inventory_enabled\":true}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'update by prefix errored: '+r['content'][0]['text'][:160]; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('UPDATE_BY_PREFIX_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; a=[p for p in d if p.get('prefix')=='MSCR']; assert a,'project vanished'; a=a[0]; want={'notes':'updated by TC-S8-003','active':'0','is_public':'0','color':'#3366cc'}; bad=[f for f,v in want.items() if a[f]!=v]; assert not bad,'did not land: '+','.join(bad)+' got '+repr({f:a[f] for f in want}); assert all(v==1 for v in a['opt'].values()),'options did not all enable: '+repr(a['opt']); assert a['name']=='MCP Scratch Project Renamed','the earlier rename was reverted: '+a['name']; print('ALL_FIELDS_OK')"
+    timeout: 30000
     expectPatterns:
-      - "DELETE_BY_ID_OK"
-      - "GONE_OK"
+      - "UPDATE_BY_PREFIX_OK"
+      - "ALL_FIELDS_OK"
+
+  - name: "Turn one option off, then prove the other three held"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts update_project "{\"project_id\":\"MSCR\",\"automation_enabled\":false}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'single-option update errored: '+r['content'][0]['text'][:160]; print('OPTION_TOGGLE_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; a=[p for p in d if p.get('prefix')=='MSCR'][0]; o=a['opt']; assert o['automationEnabled']==0,'the named option did not turn off: '+repr(o); bad=[k for k in ('requirementsEnabled','testPriorityEnabled','inventoryEnabled') if o[k]!=1]; assert not bad,'unnamed options were reset: '+','.join(bad)+' in '+repr(o); assert a['notes']=='updated by TC-S8-003' and a['active']=='0' and a['color']=='#3366cc','an options-only update disturbed a scalar field: '+repr({f:a[f] for f in ('notes','active','color')}); print('OTHER_OPTIONS_HELD_OK')"
+    timeout: 30000
+    expectPatterns:
+      - "OPTION_TOGGLE_OK"
+      - "OTHER_OPTIONS_HELD_OK"
 
 criteria: |
-  delete_project accepts a numeric internal project id, resolves it to the
-  target's prefix, and the project no longer appears in the listing.
-goal: "Delete the throwaway project by its internal id"
+  update_project accepts a test case prefix as the identity and changes notes,
+  active state, visibility, colour and each of the four project options. A
+  later update naming a single option turns that one off and leaves the other
+  three — and every scalar field — as they were.
+goal: "Every updatable field can be changed, and partial updates hold inside the options struct too"

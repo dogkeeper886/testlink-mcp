@@ -1,0 +1,28 @@
+id: TC-S8-005
+name: "Scratch: delete by INTERNAL id"
+suite: s8-project-lifecycle
+priority: 5
+timeout: 30000
+dependencies: [TC-S8-004]
+
+# tl.deleteTestProject takes a prefix and nothing else; the tool resolves an
+# internal id to one so delete is not the single identity-taking tool that
+# refuses an id. This covers that resolution — paired with TC-S8-006, which
+# drives the same delete by prefix.
+
+steps:
+  - name: "Delete the throwaway project by its internal id, then prove it is gone"
+    command: |
+      SID=$(cat /tmp/tl-flow/scratch_project_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"$SID\",\"confirm_prefix\":\"MSCR\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete by internal id errored: '+r['content'][0]['text'][:120]; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('DELETE_BY_ID_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; assert not any(p.get('prefix')=='MSCR' for p in d),'project still listed after delete'; print('GONE_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "DELETE_BY_ID_OK"
+      - "GONE_OK"
+
+criteria: |
+  delete_project accepts a numeric internal project id, resolves it to the
+  target's prefix, and the project no longer appears in the listing.
+goal: "Delete the throwaway project by its internal id"

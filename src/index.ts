@@ -236,29 +236,34 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createTestProject(createParams));
   }
 
-  async deleteTestProject(projectId: string, confirmPrefix: string) {
-    // Not validateProjectId: this one param carries either identity — a numeric
-    // internal id or a test case prefix — so a digits-only rule would reject the
-    // prefix form the server actually takes.
+  // The project tools take one param carrying either identity — a numeric
+  // internal id or a test case prefix — and resolve it against the listing
+  // rather than classifying the argument by shape: TestLink accepts an all-digit
+  // test case prefix, and a digits-only test would make such a project
+  // unreachable by the prefix these tools document. Internal id first, then
+  // prefix; if the two ever collide across projects, the id wins.
+  private async resolveTestProject(projectId: string) {
     validateNonEmptyString(projectId, 'Project ID/prefix');
-    validateNonEmptyString(confirmPrefix, 'Confirmation prefix');
 
-    // tl.deleteTestProject takes a prefix and nothing else, but every other
-    // identity-taking tool here accepts an internal id too — so resolve one to
-    // the other from the listing rather than making delete the exception.
     const projects = await this.getTestProjects();
     const rows = Array.isArray(projects) ? projects : [];
-    // Internal id first, then prefix — not a digits-only test on the argument:
-    // TestLink accepts an all-digit test case prefix, and classifying by shape
-    // would make such a project unreachable by the prefix the tool documents.
-    // If an id and another project's prefix ever collide, the id wins and the
-    // confirmation below refuses the mismatch rather than deleting the wrong one.
     const target = rows.find((p: any) => String(p.id) === projectId)
       || rows.find((p: any) => p.prefix === projectId);
 
     if (!target) {
       throw new Error(`Test project not found: ${projectId}`);
     }
+
+    return target;
+  }
+
+  async deleteTestProject(projectId: string, confirmPrefix: string) {
+    validateNonEmptyString(confirmPrefix, 'Confirmation prefix');
+
+    // tl.deleteTestProject takes a prefix and nothing else, but every other
+    // identity-taking tool here accepts an internal id too — so resolve one to
+    // the other from the listing rather than making delete the exception.
+    const target = await this.resolveTestProject(projectId);
 
     // The interlock: the caller must restate the target's own prefix. Checked
     // against the record's field, not against what was searched for, and before
@@ -270,6 +275,72 @@ class TestLinkAPI {
     }
 
     return this.handleAPICall(() => this.client.deleteTestProject({ prefix: target.prefix }));
+  }
+
+  async updateTestProject(projectId: string, data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    const target = await this.resolveTestProject(projectId);
+
+    // Partial by construction: a field the caller did not mention is never put
+    // on the wire, and tl.updateTestProject keeps the value it finds for every
+    // field absent from the request. `!== undefined` rather than a truthiness
+    // test, so notes can be cleared and a flag can be turned off.
+    const updateParams: any = { testprojectid: parseInt(target.id) };
+
+    // Only the name is guarded: notes and colour are legitimately clearable, but
+    // an empty name would leave the project with no way to identify it in the UI.
+    if (data.name !== undefined) {
+      validateNonEmptyString(data.name, 'Test project name');
+      updateParams.testprojectname = data.name;
+    }
+    if (data.notes !== undefined) updateParams.notes = data.notes;
+    if (data.color !== undefined) updateParams.color = data.color;
+    if (data.active !== undefined) updateParams.active = data.active;
+    if (data.is_public !== undefined) updateParams.public = data.is_public;
+
+    // The four project options, sent only when named. The server overlays the
+    // supplied keys onto the options the project already carries, so this stays
+    // partial within the struct too — toggling one flag leaves the other three.
+    const options: any = {};
+    if (data.requirements_enabled !== undefined) options.requirementsEnabled = data.requirements_enabled;
+    if (data.test_priority_enabled !== undefined) options.testPriorityEnabled = data.test_priority_enabled;
+    if (data.automation_enabled !== undefined) options.automationEnabled = data.automation_enabled;
+    if (data.inventory_enabled !== undefined) options.inventoryEnabled = data.inventory_enabled;
+    if (Object.keys(options).length > 0) updateParams.options = options;
+
+    // The server refuses a request naming no field, but its message lists the
+    // XML-RPC parameter names rather than this tool's — answer in the caller's
+    // own vocabulary instead, before the round trip.
+    if (Object.keys(updateParams).length === 1) {
+      throw new Error(
+        'No fields to update: supply at least one of name, notes, active, is_public, color, requirements_enabled, test_priority_enabled, automation_enabled, inventory_enabled'
+      );
+    }
+
+    return this.callForkMethod('updateTestProject', updateParams);
+  }
+
+  // Calls a TestLink method that upstream does not ship. Via the generic
+  // dispatcher because testlink-xmlrpc has no typed wrapper for a method that is
+  // not in upstream's API — same escape hatch as deleteTestCase.
+  //
+  // A stock server answers an unknown method with an XML-RPC fault naming it;
+  // catching that here once means every future fork-gated method inherits the
+  // explanation rather than restating it, and no caller sees a raw fault.
+  private async callForkMethod(method: string, params: any) {
+    try {
+      return await this.handleAPICall(() => (this.client as any)._performRequest(method, params));
+    } catch (error: any) {
+      if (error.message?.includes(`tl.${method} does not exist`)) {
+        throw new Error(
+          `This TestLink server does not provide tl.${method}, which this tool requires. That method ships in the TestLink fork at https://github.com/dogkeeper886/testlink-code (branch main) — see "TestLink server requirements" in the testlink-mcp README.`
+        );
+      }
+      throw error;
+    }
   }
 
 
@@ -758,6 +829,56 @@ const tools: Tool[] = [
     }
   },
   {
+    name: 'update_project',
+    description: 'Update an existing test project. Updates are PARTIAL: send only the fields you want to change — every field you omit keeps its current value, so renaming a project does not blank its notes. Do NOT re-send fields you are not changing. The test case prefix cannot be changed (it is stamped into every test case external ID) and is not accepted here. Requires a TestLink providing tl.updateTestProject; see the README.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The test project to update — its internal numeric ID or its test case prefix (e.g. "MFT"); both accepted (use list_projects to read either)'
+        },
+        name: {
+          type: 'string',
+          description: 'New test project name (optional; must be unique in TestLink)'
+        },
+        notes: {
+          type: 'string',
+          description: 'New project notes/description (optional)'
+        },
+        active: {
+          type: 'boolean',
+          description: 'Whether the project is active (optional)'
+        },
+        is_public: {
+          type: 'boolean',
+          description: 'Whether the project is public (optional)'
+        },
+        color: {
+          type: 'string',
+          description: 'Colour used for the project in the TestLink UI, e.g. "#3366cc" (optional)'
+        },
+        requirements_enabled: {
+          type: 'boolean',
+          description: 'Enable the requirements feature (optional)'
+        },
+        test_priority_enabled: {
+          type: 'boolean',
+          description: 'Enable the test priority feature (optional)'
+        },
+        automation_enabled: {
+          type: 'boolean',
+          description: 'Enable the test automation feature (optional)'
+        },
+        inventory_enabled: {
+          type: 'boolean',
+          description: 'Enable the inventory feature (optional)'
+        }
+      },
+      required: ['project_id']
+    }
+  },
+  {
     name: 'delete_project',
     description: 'PERMANENTLY delete a test project and EVERYTHING beneath it — every test suite, test case, test plan, build, execution and requirement. This cascades and cannot be undone; there is no parent to restore from. REQUIRED: confirm_prefix must exactly equal the target project\'s test case prefix (use list_projects to read it). A mismatch aborts and deletes nothing.',
     inputSchema: {
@@ -1222,6 +1343,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'create_project': {
         const result = await testlinkAPI.createTestProject(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'update_project': {
+        const result = await testlinkAPI.updateTestProject(
+          args.project_id as string,
+          args
+        );
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 

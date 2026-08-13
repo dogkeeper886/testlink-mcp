@@ -86,18 +86,20 @@ against a TestLink instance (only precondition: the XML-RPC API is enabled), plu
   `assign_requirements`.
 - **Teardown:** `TC-S7-003` deletes case, plan, build, requirement spec, and suite,
   and depends on every fixture-consuming test so it runs last.
-- **The one carve-out — a destructive tool owns a throwaway fixture.** `delete_project`
-  destroys a Test Project and everything beneath it. It cannot be pointed at the shared
-  fixture: rule 1 would have it consume upstream fixtures, and destroying those leaves
-  every later stage with nothing to assert against. So `s8-project-lifecycle` creates
-  `MCP Scratch Project` (`MSCR`) via `create_project`, exercises delete against it, and
-  removes it inside the stage — teardown by the stage's own last test, not by
-  `TC-S7-003`, which stays untouched.
+- **The one carve-out — the whole-project tools own a throwaway fixture.** `delete_project`
+  destroys a Test Project and everything beneath it; `update_project` rewrites the name,
+  notes, active state, visibility and options of one. Neither can be pointed at the shared
+  fixture: rule 1 would have them consume upstream fixtures, and a project destroyed — or
+  renamed and deactivated — leaves every later stage with nothing to assert against. So
+  `s8-project-lifecycle` creates `MCP Scratch Project` (`MSCR`) via `create_project`,
+  exercises update and delete against it, and removes it inside the stage — teardown by
+  the stage's own last test, not by `TC-S7-003`, which stays untouched.
 
   This is the **only** licensed exception to rules 1 and 4, and it is narrow: it applies
-  when a tool's whole job is destroying a fixture others depend on. It is not a licence
-  for any test that finds sharing inconvenient. Everything else still holds — the stable
-  name, the idempotent reuse-or-create, no hardcoded ids, and a backend left clean.
+  when a tool's subject *is* a fixture others depend on, so exercising it at all would
+  disturb them. It is not a licence for any test that finds sharing inconvenient.
+  Everything else still holds — the stable name, the idempotent reuse-or-create, no
+  hardcoded ids, and a backend left clean.
 - **Judge hygiene:** each step `echo`s a marker (e.g. `READ_OK`) for `expectPatterns`
   and parses MCP JSON with `python3` rather than dumping raw responses, so the
   deterministic simple judge's error scan stays clean.

@@ -1,37 +1,28 @@
 id: TC-S8-004
-name: "Scratch: delete by PREFIX, leaving nothing behind"
+name: "Scratch: a mismatched confirmation deletes nothing"
 suite: s8-project-lifecycle
 priority: 4
-timeout: 60000
+timeout: 30000
 dependencies: [TC-S8-003]
 
-# The other identity form, and the stage's teardown in one: TC-S8-003 already
-# destroyed the project, so this re-creates it, deletes it by prefix, and leaves
-# the backend with only the shared flow fixture — which this stage never touches.
+# The interlock is the whole reason delete_project differs from every other
+# delete tool here, so the near-miss is the case worth pinning: a wrong
+# confirm_prefix must fail AND leave the project standing. Asserting the error
+# alone would pass even if the project had been destroyed first.
 
 steps:
-  - name: "Re-create the throwaway project"
+  - name: "Delete with a wrong confirm_prefix, then prove the project survived"
     command: |
-      CP=$(npx tsx cicd/tests/src/mcp-client.ts create_project "{\"name\":\"MCP Scratch Project\",\"prefix\":\"MSCR\",\"notes\":\"throwaway fixture for the destructive stage\"}" 2>/dev/null)
-      SID=$(echo "$CP" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); p=d[0] if isinstance(d,list) else d; print(p['id'])")
-      echo "$SID" > /tmp/tl-flow/scratch_project_id
-      echo "SCRATCH_RECREATE_OK id=$SID"
-    timeout: 30000
-    expectPatterns:
-      - "SCRATCH_RECREATE_OK id=[0-9]+"
-
-  - name: "Delete it by prefix, then prove it is gone"
-    command: |
-      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"MSCR\",\"confirm_prefix\":\"MSCR\"}" 2>/dev/null)
-      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete by prefix errored: '+r['content'][0]['text'][:120]; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('DELETE_BY_PREFIX_OK')"
-      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; assert not any(p.get('prefix')=='MSCR' for p in d),'throwaway project leaked'; print('SCRATCH_TEARDOWN_OK')"
+      SID=$(cat /tmp/tl-flow/scratch_project_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"$SID\",\"confirm_prefix\":\"WRONG\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert r.get('isError'),'mismatched confirmation was not rejected'; t=r['content'][0]['text']; assert 'Confirmation failed' in t,'wrong error: '+t[:120]; print('REFUSED_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; sid=open('/tmp/tl-flow/scratch_project_id').read().strip(); assert any(str(p.get('id'))==sid for p in d),'project was destroyed by a mismatched confirmation'; print('SURVIVED_OK')"
     timeout: 20000
     expectPatterns:
-      - "DELETE_BY_PREFIX_OK"
-      - "SCRATCH_TEARDOWN_OK"
+      - "REFUSED_OK"
+      - "SURVIVED_OK"
 
 criteria: |
-  delete_project accepts a test case prefix as the identity, and the stage
-  removes the throwaway project it created — leaving the shared flow fixture
-  untouched.
-goal: "Delete the throwaway project by prefix and leave the backend clean"
+  delete_project rejects a confirm_prefix that does not match the target's test
+  case prefix, and the project is still listed afterwards.
+goal: "A near-miss confirmation is a harmless error, not an unrecoverable one"

@@ -25,15 +25,19 @@ position in the flow.
 | **s5** build mgmt | `create_build` (left open for s6) + `list_builds` |
 | **s6** execution | `create_test_execution` + `read_test_execution` |
 | **s7** requirements | requirement spec + requirement → coverage; then **teardown**: close build → delete case/plan/req-spec/suite |
-| **s8** project lifecycle | `delete_project` against a **throwaway** project of its own — the interlock refuses a mismatched confirmation, then delete by internal id **and** by prefix |
+| **s8** project lifecycle | `update_project` then `delete_project` against a **throwaway** project of its own — partial updates by internal id **and** by prefix, the interlock refusing a mismatched confirmation, then delete by both identity forms |
 
-A full `cli.ts run` executes **23 tests** and passes against a **fresh** TestLink (only
+A full `cli.ts run` executes **25 tests** and passes against a **fresh** TestLink (only
 precondition: the XML-RPC API is enabled), repeatably — CRUD is embedded *in* the flow,
 not isolated, and teardown leaves only the empty project.
 
-**s8 is the one stage off the chain, deliberately.** The destructive tool needs a project
-it is allowed to destroy, so it creates and removes its own — the shared fixture every
-other stage threads is never at risk.
+**s8 is the one stage off the chain, deliberately.** Its tools rewrite or destroy a whole
+project, which the shared fixture cannot survive being pointed at, so the stage creates
+and removes its own — nothing every other stage threads is ever at risk.
+
+**s8 needs a TestLink providing `tl.updateTestProject`** — upstream does not ship it, so
+the instance this suite runs against must be the fork (see "TestLink server requirements"
+in the repo README). Every other stage runs against stock TestLink.
 
 ## How fixtures are threaded
 
@@ -67,7 +71,7 @@ Every entity has a fixed name; all IDs are produced at runtime, never hardcoded.
 | Build | `Flow Build` | idempotent, left open for s6 |
 | Req spec | `Flow Req Spec` (`FLOW-RS`) | idempotent |
 | Requirement | `Flow Requirement` (`FLOW-REQ`) | idempotent; inside the spec |
-| Scratch project | `MCP Scratch Project` (prefix `MSCR`) | s8 only — created and destroyed inside the stage |
+| Scratch project | `MCP Scratch Project` (prefix `MSCR`) | s8 only — created, mutated and destroyed inside the stage |
 
 Every entity is created through the MCP tools under test.
 
