@@ -25,10 +25,15 @@ position in the flow.
 | **s5** build mgmt | `create_build` (left open for s6) + `list_builds` |
 | **s6** execution | `create_test_execution` + `read_test_execution` |
 | **s7** requirements | requirement spec + requirement → coverage; then **teardown**: close build → delete case/plan/req-spec/suite |
+| **s8** project lifecycle | `delete_project` against a **throwaway** project of its own — the interlock refuses a mismatched confirmation, then delete by internal id **and** by prefix |
 
-A full `cli.ts run` executes **19 tests** and passes against a **fresh** TestLink (only
+A full `cli.ts run` executes **23 tests** and passes against a **fresh** TestLink (only
 precondition: the XML-RPC API is enabled), repeatably — CRUD is embedded *in* the flow,
 not isolated, and teardown leaves only the empty project.
+
+**s8 is the one stage off the chain, deliberately.** The destructive tool needs a project
+it is allowed to destroy, so it creates and removes its own — the shared fixture every
+other stage threads is never at risk.
 
 ## How fixtures are threaded
 
@@ -62,6 +67,7 @@ Every entity has a fixed name; all IDs are produced at runtime, never hardcoded.
 | Build | `Flow Build` | idempotent, left open for s6 |
 | Req spec | `Flow Req Spec` (`FLOW-RS`) | idempotent |
 | Requirement | `Flow Requirement` (`FLOW-REQ`) | idempotent; inside the spec |
+| Scratch project | `MCP Scratch Project` (prefix `MSCR`) | s8 only — created and destroyed inside the stage |
 
 Every entity is created through the MCP tools under test.
 
@@ -80,7 +86,7 @@ npx tsx src/cli.ts run --id TC-S2-002        # one test (deps auto-included)
 npx tsx src/cli.ts list                      # list all tests
 ```
 
-Suite shortcuts: `npm run test:s1` … `test:s7`. Results (JSON) land in
+Suite shortcuts: `npm run test:s1` … `test:s8`. Results (JSON) land in
 `cicd/results/<timestamp>_<suite>/`. To stand up a local TestLink, see the `testlink-code`
 fork's docker-compose (TestLink on `:8090`).
 

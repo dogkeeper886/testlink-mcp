@@ -1,0 +1,28 @@
+id: TC-S8-002
+name: "Scratch: a mismatched confirmation deletes nothing"
+suite: s8-project-lifecycle
+priority: 2
+timeout: 30000
+dependencies: [TC-S8-001]
+
+# The interlock is the whole reason delete_project differs from every other
+# delete tool here, so the near-miss is the case worth pinning: a wrong
+# confirm_prefix must fail AND leave the project standing. Asserting the error
+# alone would pass even if the project had been destroyed first.
+
+steps:
+  - name: "Delete with a wrong confirm_prefix, then prove the project survived"
+    command: |
+      SID=$(cat /tmp/tl-flow/scratch_project_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"$SID\",\"confirm_prefix\":\"WRONG\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert r.get('isError'),'mismatched confirmation was not rejected'; t=r['content'][0]['text']; assert 'Confirmation failed' in t,'wrong error: '+t[:120]; print('REFUSED_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; sid=open('/tmp/tl-flow/scratch_project_id').read().strip(); assert any(str(p.get('id'))==sid for p in d),'project was destroyed by a mismatched confirmation'; print('SURVIVED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "REFUSED_OK"
+      - "SURVIVED_OK"
+
+criteria: |
+  delete_project rejects a confirm_prefix that does not match the target's test
+  case prefix, and the project is still listed afterwards.
+goal: "A near-miss confirmation is a harmless error, not an unrecoverable one"

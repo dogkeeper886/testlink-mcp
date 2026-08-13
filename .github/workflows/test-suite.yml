@@ -15,6 +15,7 @@ on:
           - "s5-build-mgmt"
           - "s6-execution"
           - "s7-requirements"
+          - "s8-project-lifecycle"
           - "all"
       judge_mode:
         description: "Test judge mode (dual needs CLAUDE_CODE_OAUTH_TOKEN; else falls back to simple)"

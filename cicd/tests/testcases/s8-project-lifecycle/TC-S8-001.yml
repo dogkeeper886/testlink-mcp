@@ -1,0 +1,35 @@
+id: TC-S8-001
+name: "Scratch: create the throwaway project"
+suite: s8-project-lifecycle
+priority: 1
+timeout: 60000
+dependencies: [TC-S1-001]
+
+# The destructive stage. It works on its OWN throwaway project, never the shared
+# flow fixture — a delete test that destroys the project every later stage depends
+# on cannot assert anything. Created here, destroyed by TC-S8-004, so the stage
+# leaves the backend as it found it and needs no entry in the s7 teardown.
+#
+# Idempotent by prefix like every other fixture: a failed earlier run leaves the
+# project behind, and this reuses it rather than colliding on the unique prefix.
+
+steps:
+  - name: "Ensure the throwaway project exists (idempotent via MCP)"
+    command: |
+      mkdir -p /tmp/tl-flow
+      PROJECTS=$(npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null)
+      SID=$(echo "$PROJECTS" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[p for p in d if p.get('prefix')=='MSCR']; print(m[0]['id'] if m else '')")
+      if [ -z "$SID" ]; then
+        CP=$(npx tsx cicd/tests/src/mcp-client.ts create_project "{\"name\":\"MCP Scratch Project\",\"prefix\":\"MSCR\",\"notes\":\"throwaway fixture for the destructive stage\"}" 2>/dev/null)
+        SID=$(echo "$CP" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); p=d[0] if isinstance(d,list) else d; print(p['id'])")
+      fi
+      echo "$SID" > /tmp/tl-flow/scratch_project_id
+      echo "SCRATCH_CREATE_OK id=$SID prefix=MSCR"
+    timeout: 30000
+    expectPatterns:
+      - "SCRATCH_CREATE_OK id=[0-9]+ prefix=MSCR"
+
+criteria: |
+  create_project provisions the throwaway project this stage destroys, reused by
+  prefix if an earlier run left it behind. Publishes scratch_project_id.
+goal: "Create the throwaway project the destructive stage operates on"
