@@ -113,6 +113,13 @@ project's `.claude/skills/` (or `~/.claude/skills/` for every project), then jus
 
 The server exits immediately if `TESTLINK_API_KEY` is missing.
 
+Pass them as environment variables, or put them in a **`.env`** file — the server loads
+one automatically at startup:
+
+```bash
+cp .env.example .env   # then edit; .env is gitignored
+```
+
 ## Run from source
 
 ```bash
@@ -122,6 +129,20 @@ npm install
 npm run build
 TESTLINK_URL=http://host/testlink TESTLINK_API_KEY=key node dist/index.js
 ```
+
+### A TestLink to develop against
+
+You need a reachable TestLink with the XML-RPC API enabled. If you don't have one, the
+[`testlink-code`](https://github.com/dogkeeper886/testlink-code) fork ships a disposable
+stack:
+
+```bash
+cicd/scripts/ci-up.sh     # build, start, seed — TestLink on :8091
+cicd/scripts/ci-down.sh   # tear down
+```
+
+It is **ephemeral** — the fork's test runner tears it down when it finishes, so expect to
+start it again. Point your `.env` at `http://localhost:8091`.
 
 ## Troubleshooting
 
