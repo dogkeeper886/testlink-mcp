@@ -36,13 +36,19 @@ in the same case, because either alone would pass a broken implementation.
 
 ### TC-03: Update a suite
 
-- **Objective:** `update_test_suite` edits suite details without error.
+- **Objective:** `update_test_suite` edits suite details without error, and refuses a name TestLink cannot store.
 - **Script:** cicd/tests/testcases/s3-test-suite/TC-S3-003.yml
 - **Preconditions:** the flow suite exists.
 
 | # | Action | Expected Result |
 |---|--------|-----------------|
 | 1 | Update the flow suite's details | `UPDATE_SUITE_OK` — the call reports no `isError` |
+| 2 | Rename the flow suite to a 101-character name | `LONG_NAME_REFUSED_OK` — refused with a message naming the field and the 100-character limit, not `Unknown XML-RPC tag 'PRE'` |
+
+Step 2 guards #111: `nodes_hierarchy.name` is `varchar(100)` and TestLink does not
+check it — it returns a PHP error page that reaches the client as a parse failure
+saying nothing about names or length. The guard belongs to the server, so the test
+asserts the *message*, not merely that the call failed.
 
 ### TC-04: Nest a child suite and scope the listing
 

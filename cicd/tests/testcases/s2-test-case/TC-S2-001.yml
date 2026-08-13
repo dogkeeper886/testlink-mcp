@@ -26,9 +26,9 @@ steps:
     expectPatterns:
       - "PROVISION_PROJECT_OK [0-9]+ MFT"
 
-  - name: "Verify the project fixture is listed"
+  - name: "Verify the project fixture is listed, with no credential in the payload"
     command: |
-      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; pid=open('/tmp/tl-flow/project_id').read().strip(); m=[p for p in d if str(p.get('id'))==pid]; assert m,'flow project not listed'; assert m[0].get('name')=='MCP Flow Tests','project name mismatch'; assert m[0].get('prefix')=='MFT','project prefix mismatch'; print('LIST_PROJECTS_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; pid=open('/tmp/tl-flow/project_id').read().strip(); m=[p for p in d if str(p.get('id'))==pid]; assert m,'flow project not listed'; assert m[0].get('name')=='MCP Flow Tests','project name mismatch'; assert m[0].get('prefix')=='MFT','project prefix mismatch'; leaked=[p.get('id') for p in d if 'api_key' in p]; assert not leaked,'api_key returned for project(s) %s' % leaked; print('LIST_PROJECTS_OK')"
     timeout: 30000
     expectPatterns:
       - "LIST_PROJECTS_OK"
@@ -51,6 +51,6 @@ steps:
 criteria: |
   Provision shared flow fixtures through the MCP tools: a dedicated project
   (create_project, reused by prefix if already there) that list_projects then
-  reports, and a reusable top-level "Flow Suite". Publishes project_id,
-  project_name, prefix, suite_id to /tmp/tl-flow/.
+  reports without its TestLink api_key, and a reusable top-level "Flow Suite".
+  Publishes project_id, project_name, prefix, suite_id to /tmp/tl-flow/.
 goal: "Provision project + suite fixtures for the end-to-end flow"

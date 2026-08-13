@@ -24,6 +24,14 @@ steps:
     expectPatterns:
       - "PLAN_READY=[0-9]+"
 
+  - name: "Verify the plan is listed, with no credential in the payload"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); PLAN=$(cat /tmp/tl-flow/plan_id)
+      npx tsx cicd/tests/src/mcp-client.ts list_test_plans "{\"project_id\":\"$PID\"}" 2>/dev/null | PLAN="$PLAN" python3 -c "import sys,json,os; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; m=[p for p in d if str(p.get('id'))==os.environ['PLAN']]; assert m,'flow plan not listed'; leaked=[p.get('id') for p in d if 'api_key' in p]; assert not leaked,'api_key returned for plan(s) %s' % leaked; print('LIST_TEST_PLANS_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "LIST_TEST_PLANS_OK"
+
   - name: "Add the flow case to the plan"
     command: |
       PID=$(cat /tmp/tl-flow/project_id); PLAN=$(cat /tmp/tl-flow/plan_id); CASE=$(cat /tmp/tl-flow/case_ext_id)
@@ -34,6 +42,7 @@ steps:
       - "ADD_TO_PLAN_OK"
 
 criteria: |
-  create_test_plan creates a plan in the flow project and
-  add_test_case_to_test_plan links the flow case to it.
+  create_test_plan creates a plan in the flow project, list_test_plans reports
+  it without its TestLink api_key, and add_test_case_to_test_plan links the flow
+  case to it.
 goal: "Create a plan and add the flow case via the MCP tools"

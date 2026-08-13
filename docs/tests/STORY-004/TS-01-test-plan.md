@@ -18,14 +18,21 @@ passing the id yields `Test Project (name:1) does not exist`. TC-01 therefore re
 
 ### TC-01: Create the plan and add the case
 
-- **Objective:** a plan exists in the flow project and the flow case is assigned to it.
+- **Objective:** a plan exists in the flow project, lists without leaking a credential, and the flow case is assigned to it.
 - **Script:** cicd/tests/testcases/s4-test-plan/TC-S4-001.yml
 - **Preconditions:** TS-02 has published `project_name`, `project_id`, and `case_ext_id`.
 
 | # | Action | Expected Result |
 |---|--------|-----------------|
 | 1 | Create `Flow Plan`, keyed by project **name**, reusing it if already present | `PLAN_READY=<id>`; the plan id is published for TS-05 and TS-06 |
-| 2 | Add the flow case to the plan | `ADD_TO_PLAN_OK` — the call reports no `isError` |
+| 2 | List the project's plans | `LIST_TEST_PLANS_OK` — the plan is present and **no row carries `api_key`** |
+| 3 | Add the flow case to the plan | `ADD_TO_PLAN_OK` — the call reports no `isError` |
+
+Step 2 guards the #100 credential redaction, which shipped with nothing asserting it
+(#111). It sits *after* creation deliberately: the listing call in step 1 runs before
+the plan exists and is empty on a fresh TestLink, so asserting there would pass forever
+while checking nothing. It scans every returned row, not just the flow's own, so a
+partial regression on one code path still trips it.
 
 ### TC-02: Read the plan's cases back
 

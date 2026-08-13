@@ -30,7 +30,17 @@ steps:
     expectPatterns:
       - "SCRATCH_CREATE_OK id=[0-9]+ prefix=MSCR"
 
+  - name: "A project with no suites lists as empty, not as an error"
+    command: |
+      SID=$(cat /tmp/tl-flow/scratch_project_id)
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts list_test_suites "{\"project_id\":\"$SID\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); t=r['content'][0]['text']; assert not r.get('isError'),'empty project raised instead of listing: %s' % t[:120]; d=json.loads(t); assert d==[],'expected an empty list, got %r' % d; print('EMPTY_PROJECT_LISTS_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "EMPTY_PROJECT_LISTS_OK"
+
 criteria: |
   create_project provisions the throwaway project this stage destroys, reused by
-  prefix if an earlier run left it behind. Publishes scratch_project_id.
+  prefix if an earlier run left it behind, and list_test_suites reports the fresh
+  project as an empty list rather than raising. Publishes scratch_project_id.
 goal: "Create the throwaway project the destructive stage operates on"
