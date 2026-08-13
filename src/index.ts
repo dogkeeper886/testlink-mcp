@@ -236,6 +236,42 @@ class TestLinkAPI {
     return this.handleAPICall(() => this.client.createTestProject(createParams));
   }
 
+  async deleteTestProject(projectId: string, confirmPrefix: string) {
+    // Not validateProjectId: this one param carries either identity — a numeric
+    // internal id or a test case prefix — so a digits-only rule would reject the
+    // prefix form the server actually takes.
+    validateNonEmptyString(projectId, 'Project ID/prefix');
+    validateNonEmptyString(confirmPrefix, 'Confirmation prefix');
+
+    // tl.deleteTestProject takes a prefix and nothing else, but every other
+    // identity-taking tool here accepts an internal id too — so resolve one to
+    // the other from the listing rather than making delete the exception.
+    const projects = await this.getTestProjects();
+    const rows = Array.isArray(projects) ? projects : [];
+    // Internal id first, then prefix — not a digits-only test on the argument:
+    // TestLink accepts an all-digit test case prefix, and classifying by shape
+    // would make such a project unreachable by the prefix the tool documents.
+    // If an id and another project's prefix ever collide, the id wins and the
+    // confirmation below refuses the mismatch rather than deleting the wrong one.
+    const target = rows.find((p: any) => String(p.id) === projectId)
+      || rows.find((p: any) => p.prefix === projectId);
+
+    if (!target) {
+      throw new Error(`Test project not found: ${projectId}`);
+    }
+
+    // The interlock: the caller must restate the target's own prefix. Checked
+    // against the record's field, not against what was searched for, and before
+    // anything is destroyed.
+    if (target.prefix !== confirmPrefix) {
+      throw new Error(
+        `Confirmation failed: confirm_prefix "${confirmPrefix}" does not match the test case prefix "${target.prefix}" of project "${target.name}". Nothing was deleted.`
+      );
+    }
+
+    return this.handleAPICall(() => this.client.deleteTestProject({ prefix: target.prefix }));
+  }
+
 
   async getTestSuites(projectId: string, parentSuiteId?: string) {
     validateProjectId(projectId);
@@ -722,6 +758,24 @@ const tools: Tool[] = [
     }
   },
   {
+    name: 'delete_project',
+    description: 'PERMANENTLY delete a test project and EVERYTHING beneath it — every test suite, test case, test plan, build, execution and requirement. This cascades and cannot be undone; there is no parent to restore from. REQUIRED: confirm_prefix must exactly equal the target project\'s test case prefix (use list_projects to read it). A mismatch aborts and deletes nothing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: {
+          type: 'string',
+          description: 'The test project to delete — its internal numeric ID or its test case prefix (e.g. "MFT"); both accepted'
+        },
+        confirm_prefix: {
+          type: 'string',
+          description: 'Safety interlock: must exactly match the target project\'s test case prefix, restated by the caller'
+        }
+      },
+      required: ['project_id', 'confirm_prefix']
+    }
+  },
+  {
     name: 'list_test_suites',
     description: 'List test suites for a project. Without parent_suite_id, returns top-level (first-level) suites. With parent_suite_id, returns the immediate child suites of that parent (single level, no recursion).',
     inputSchema: {
@@ -1168,6 +1222,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'create_project': {
         const result = await testlinkAPI.createTestProject(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'delete_project': {
+        const result = await testlinkAPI.deleteTestProject(
+          args.project_id as string,
+          args.confirm_prefix as string
+        );
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 

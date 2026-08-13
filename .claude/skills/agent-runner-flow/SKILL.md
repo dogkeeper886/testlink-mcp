@@ -72,18 +72,32 @@ Mechanics live in `cicd/tests/README.md`. This skill is the *why* and the *rules
 ## This project (testlink-mcp)
 
 The flow under `cicd/tests/testcases/` runs `s1-build-deploy → … → s7-requirements`
-against a TestLink instance (only precondition: the XML-RPC API is enabled).
+against a TestLink instance (only precondition: the XML-RPC API is enabled), plus
+`s8-project-lifecycle` — the one stage deliberately off the chain, see below.
 
 - **Hand-off:** stages publish/read fixture IDs via `/tmp/tl-flow/*`.
 - **Stable fixtures:** `Flow Suite`, `Flow Case`, `Flow Plan`, `Flow Build`, doc ids
   `FLOW-RS` / `FLOW-REQ` — each created idempotently (list by name/doc-id, reuse or
-  create). The one portable literal is `admin` (the built-in default user).
+  create). The one portable literal is `admin` (the built-in default user). Plus
+  `MCP Scratch Project` (`MSCR`), s8's own — see the carve-out below.
 - **The connected graph:** the requirement *covers* the case; the case is *in* the
   suite and the plan; the build *belongs to* the plan; the execution *records* the
   case in the build. A lone requirement in its own spec is linked via
   `assign_requirements`.
 - **Teardown:** `TC-S7-003` deletes case, plan, build, requirement spec, and suite,
   and depends on every fixture-consuming test so it runs last.
+- **The one carve-out — a destructive tool owns a throwaway fixture.** `delete_project`
+  destroys a Test Project and everything beneath it. It cannot be pointed at the shared
+  fixture: rule 1 would have it consume upstream fixtures, and destroying those leaves
+  every later stage with nothing to assert against. So `s8-project-lifecycle` creates
+  `MCP Scratch Project` (`MSCR`) via `create_project`, exercises delete against it, and
+  removes it inside the stage — teardown by the stage's own last test, not by
+  `TC-S7-003`, which stays untouched.
+
+  This is the **only** licensed exception to rules 1 and 4, and it is narrow: it applies
+  when a tool's whole job is destroying a fixture others depend on. It is not a licence
+  for any test that finds sharing inconvenient. Everything else still holds — the stable
+  name, the idempotent reuse-or-create, no hardcoded ids, and a backend left clean.
 - **Judge hygiene:** each step `echo`s a marker (e.g. `READ_OK`) for `expectPatterns`
   and parses MCP JSON with `python3` rather than dumping raw responses, so the
   deterministic simple judge's error scan stays clean.

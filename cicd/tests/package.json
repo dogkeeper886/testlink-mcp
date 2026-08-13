@@ -14,6 +14,7 @@
     "test:s5": "tsx src/cli.ts run --suite s5-build-mgmt",
     "test:s6": "tsx src/cli.ts run --suite s6-execution",
     "test:s7": "tsx src/cli.ts run --suite s7-requirements",
+    "test:s8": "tsx src/cli.ts run --suite s8-project-lifecycle",
     "list": "tsx src/cli.ts list",
     "dev": "tsx src/cli.ts",
     "audit-bind": "tsx src/audit-bind.ts",
