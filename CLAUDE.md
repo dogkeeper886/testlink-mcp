@@ -123,6 +123,23 @@ human and never auto-run — invoke them by hand.
 judgment. Reach for these when a change is substantial enough that the look, the
 wording, or the artifact's fitness actually matters.
 
+## Agent skills
+
+Where the engineering skills read this repo's specifics. These are **values**, like
+`.claude/rules/project-profile.md` — edit the files, not the skills.
+
+### Issue tracker
+
+GitHub Issues on `dogkeeper886/testlink-mcp`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, unchanged. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at the repo root, created lazily. See `docs/agents/domain.md`.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

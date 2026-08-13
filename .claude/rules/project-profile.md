@@ -40,6 +40,9 @@ project's choice.
 - priority: `priority:high` · `priority:medium` · `priority:low`
 - type: `feature` · `enhancement` · `bug` · `docs`
 - status: `status:in-progress` · `status:needs-review` · `status:blocked`
+- triage state: `ready-for-agent` — applied by `/triage` to mark an issue ready to be
+  worked; `/ship-merge` is its only exit. The full triage vocabulary is
+  `docs/agents/triage-labels.md`.
 
 ## Linking & branch
 
