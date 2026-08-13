@@ -35,7 +35,7 @@ Add to your Cursor MCP settings:
 
 ## 📋 Features
 
-- **27 MCP Tools** for comprehensive TestLink management
+- **28 MCP Tools** for comprehensive TestLink management
 - **Test Case Management**: Create, read, update, delete test cases
 - **Test Suite Operations**: Manage test suites and organize test cases
 - **Test Plan Management**: Create test plans, assign test cases, manage builds
@@ -85,7 +85,8 @@ Add to your Cursor MCP settings:
 - `delete_requirement_specification` - Delete a specification and its requirements
 - `assign_requirements` - Link requirements to a test case (coverage)
 
-### Project Management (1 tool)
+### Project Management (2 tools)
+- `create_project` - Create a new test project
 - `list_projects` - Get all test projects
 
 ## 🔧 Environment Variables

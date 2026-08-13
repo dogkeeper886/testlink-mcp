@@ -209,6 +209,33 @@ class TestLinkAPI {
     return stripApiKey(await this.handleAPICall(() => this.client.getProjects()));
   }
 
+  async createTestProject(data: any) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Test project data must be an object');
+    }
+    validateNonEmptyString(data.name, 'Test project name');
+    validateNonEmptyString(data.prefix, 'Test case prefix');
+
+    const createParams = {
+      testprojectname: data.name,
+      testcaseprefix: data.prefix,
+      notes: data.notes || '',
+      active: data.active !== undefined ? data.active : true,
+      public: data.is_public !== undefined ? data.is_public : true,
+      // The four project options TestLink accepts, as a fixed set of keys — the
+      // manager serializes this structure into SQL unescaped, so the caller
+      // never gets to name a key.
+      options: {
+        requirementsEnabled: data.requirements_enabled === true,
+        testPriorityEnabled: data.test_priority_enabled === true,
+        automationEnabled: data.automation_enabled === true,
+        inventoryEnabled: data.inventory_enabled === true
+      }
+    };
+
+    return this.handleAPICall(() => this.client.createTestProject(createParams));
+  }
+
 
   async getTestSuites(projectId: string, parentSuiteId?: string) {
     validateProjectId(projectId);
@@ -646,6 +673,52 @@ const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {}
+    }
+  },
+  {
+    name: 'create_project',
+    description: 'Create a new test project in TestLink. Returns the new project\'s internal ID, which the suite, plan and case tools take as project_id. The test case prefix is fixed at creation and appears in every test case external ID (PREFIX-123).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Test project name (must be unique in TestLink)'
+        },
+        prefix: {
+          type: 'string',
+          description: 'Test case prefix, e.g. "MFT" (must be unique; cannot be changed later)'
+        },
+        notes: {
+          type: 'string',
+          description: 'Project notes/description (optional)'
+        },
+        active: {
+          type: 'boolean',
+          description: 'Whether the project is active (optional, defaults to true)'
+        },
+        is_public: {
+          type: 'boolean',
+          description: 'Whether the project is public (optional, defaults to true)'
+        },
+        requirements_enabled: {
+          type: 'boolean',
+          description: 'Enable the requirements feature (optional, defaults to false)'
+        },
+        test_priority_enabled: {
+          type: 'boolean',
+          description: 'Enable the test priority feature (optional, defaults to false)'
+        },
+        automation_enabled: {
+          type: 'boolean',
+          description: 'Enable the test automation feature (optional, defaults to false)'
+        },
+        inventory_enabled: {
+          type: 'boolean',
+          description: 'Enable the inventory feature (optional, defaults to false)'
+        }
+      },
+      required: ['name', 'prefix']
     }
   },
   {
@@ -1090,6 +1163,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'list_projects': {
         const result = await testlinkAPI.getTestProjects();
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+
+      case 'create_project': {
+        const result = await testlinkAPI.createTestProject(args);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 

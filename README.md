@@ -22,7 +22,7 @@ XML-RPC API so an AI assistant can do that work for you:
 
 - **Talk, don't click.** *"Add detailed steps to MFT-12 and mark it high importance."*
 - **Works with any MCP client** — Claude Code, Cursor, Dify, or your own.
-- **27 tools across the whole TestLink model** — cases, suites, plans, builds, executions,
+- **28 tools across the whole TestLink model** — cases, suites, plans, builds, executions,
   requirements, projects.
 - **Solid where it counts** — strict input validation, clear XML-RPC error mapping, and
   correct internal-vs-external ID handling so edits land on the right case.
@@ -87,7 +87,7 @@ execution that *records* a result.
 | **Builds** (3) | `create_build`, `close_build`, `list_builds` |
 | **Executions** (2) | `create_test_execution`, `read_test_execution` |
 | **Requirements** (7) | `create_requirement_specification`, `delete_requirement_specification`, `list_requirement_specifications`, `create_requirement`, `get_requirement`, `list_requirements`, `assign_requirements` |
-| **Projects** (1) | `list_projects` |
+| **Projects** (2) | `create_project`, `list_projects` |
 
 ## Reusable skills
 
