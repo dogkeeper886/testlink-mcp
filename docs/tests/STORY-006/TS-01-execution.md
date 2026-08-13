@@ -3,7 +3,6 @@ id: TS-01
 title: A pass result is recorded and reads back as a pass
 namespace: testlink-mcp
 story: STORY-006
-story_hash: 153c9f026bdc0750d93b3663bcbb4f9230eac4b39ae9cc7a5a6a0b9891723691
 issue: 107
 status: green
 ---

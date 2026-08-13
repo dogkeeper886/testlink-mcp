@@ -3,7 +3,6 @@ id: TS-01
 title: A test plan is created and the flow case is linked to it
 namespace: testlink-mcp
 story: STORY-004
-story_hash: 05579e565aa922f525ba686f4054dd309587b76ab868cc5bc01298201876714e
 issue: 107
 status: green
 ---

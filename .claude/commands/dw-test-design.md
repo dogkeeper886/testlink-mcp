@@ -12,7 +12,8 @@ the changes. It detects what test infrastructure the project uses and generates
 tests in the native format. If no test infrastructure exists, it writes a manual
 test checklist and recommends adopting a test framework.
 
-Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
+Fits in after `/implement` (mattpocock/skills) and before `/ship-create-pr`
+(the agent-workflows ship tail). No plugin ships this command; it lives here.
 
 ---
 
@@ -100,14 +101,14 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
         │     - Files created/modified
         │     - Test run result (if applicable)
         │   - If tests were written, show the test run output
-        │   - Suggest: proceed to /dw-create-pr
+        │   - Suggest: proceed to /ship-create-pr
         │
         └─► Step 5b: On Test Failure
             - If generated tests fail, investigate:
               - Is the implementation incomplete?
               - Is the test expectation wrong?
             - Fix tests or flag implementation gap to the user
-            - Do not proceed to /dw-create-pr with failing tests
+            - Do not proceed to /ship-create-pr with failing tests
 
 ---
 
@@ -127,7 +128,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
     Running: npm test -- --suite integration --no-llm
     Result: 2 tests passed (0 failed)
 
-    Next: /dw-create-pr 47
+    Next: /ship-create-pr 47
 
 ---
 
@@ -147,7 +148,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
     Running: pytest tests/test_issue_12_login_fix.py -v
     Result: 3 tests passed
 
-    Next: /dw-create-pr 12
+    Next: /ship-create-pr 12
 
 ---
 
@@ -172,7 +173,7 @@ Fits into the dev-workflow chain after /dw-implement and before /dw-create-pr.
 
     Create follow-up issue for CI setup? [y/n]
 
-    Next: /dw-create-pr 5
+    Next: /ship-create-pr 5
 
 ---
 

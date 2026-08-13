@@ -62,36 +62,45 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 5. Dev & QA workflow discipline
 
-Substantial work flows through a pipeline; each step is a gate that stops for a
-human decision (commands suggest the next, they never auto-run it):
+Substantial work flows through a gated pipeline — each step stops for a human decision,
+and a command suggests the next rather than auto-running it. **This repo no longer owns
+any of it.** The work is split across three installed sources:
 
-```
-dw-story → dw-review-story → dw-plan → [human reviews the plan issue]
-        → dw-tasks → dw-review-tasks → dw-implement → dw-review-implement
-        → dw-create-pr → [human review + /review] → dw-merge
-```
+| Source | Covers | Doctrine |
+|--------|--------|----------|
+| `mattpocock/skills` | **idea → commit**: `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`, `/code-review-2axis`. Ends at *"commit your work to the current branch"*. | — |
+| `agent-workflows` | **commit → merge** (the ship tail): `reviewing-finish` → `/ship-create-pr` → `/ship-merge`. Plus the `doc-*` pair and the report contract. | its `rules/ship-tail.md`, `rules/agent-report.md`, `rules/doc-workflow.md` |
+| `agent-workflows-runner` | the **QA lifecycle** — plan → author → bind → audit, as `qa-*` | its `rules/qa-workflow.md` |
 
-The full flow + producer→review pairing lives in `.claude/rules/dev-workflow.md`. Trivial
-work skips the plan: `dw-story → dw-tasks`.
+Read the flow and the producer→review pairing from those rules — don't restate them here,
+and don't copy a plugin command back into `.claude/`. A local fork shadows the installed
+copy and goes stale silently; that is exactly what this repo just cleaned up.
 
-**qa-workflow** is the sibling pipeline — same gated discipline, turning a story into
-trustworthy test docs:
+**There is no `dw-*` pipeline any more.** `agent-workflows` deleted those seven commands
+rather than compete with `mattpocock/skills`, and renamed the two that survived —
+`dw-create-pr` → `/ship-create-pr`, `dw-merge` → `/ship-merge`. **The QA commands are
+`qa-*`, not `qw-*`**; the runner renamed those. Older `docs/stories/` entries still say
+`dw-tasks`, `qw-bind`, `qw-drift` — those records describe what was true when written.
 
-```
-qw-plan → qw-review-plan → qw-cases → qw-review-cases
-```
+**The plugins load live from a directory source**, not a version-pinned cache
+(`~/.claude/settings.json` → `extraKnownMarketplaces`). Editing the plugin repo changes
+this project's commands immediately, and a stale cache is not what you are reading. Check
+the source tree, not `~/.claude/plugins/cache/`, when you need to know what a plugin ships.
 
-The full flow + pairing lives in `.claude/rules/qa-workflow.md`.
+**What this repo still owns**, because no plugin ships it:
+- `/dw-test-design` (`.claude/commands/dw-test-design.md`) — its review is running the suite.
+- the four `testlink-*` skills — see §6 and `.claude/rules/testlink-authoring.md`.
+- `.claude/rules/project-profile.md` — this project's *values*, which every plugin command
+  resolves. Values live here; doctrine travels in the plugins.
 
-One review gate is an external builtin this toolkit does not own — invoke it by hand:
-- `/review` (builtin): PR overview. Run after `dw-create-pr`, before `dw-merge`.
+The rule of thumb for `.claude/commands/`: **a command here is one no plugin ships.**
 
-Don't wire this into the `dw-*` commands — it may not exist in every install,
-and a command that references a missing skill is a dangling pointer.
+One review gate is an external builtin no toolkit owns — invoke it by hand:
+- `/review` (builtin): PR overview. Run before the merge gate.
 
 **Right-size it.** A typo or a one-line doc change does not need the full chain —
-use judgment; branch + PR + merge is enough. The review passes overlap:
-`dw-review-implement` is the always-on substance gate, `/review` is the PR summary.
+use judgment; branch + PR + merge is enough. The review passes overlap: the
+implementation review is the always-on substance gate, `/review` is the PR summary.
 Running both on a trivial diff is ritual, not rigor.
 
 ## 6. Artifact & doc review discipline
@@ -104,8 +113,11 @@ Match the reviewer to **who reads** the file you changed:
   `reviewing-artifacts` (does it do its job — one job, complete, goal-not-spec,
   fits the project, right for its reader).
 
-These are skills this project owns. Like the dev-workflow gates, they stop for a human
-and never auto-run — invoke them by hand.
+These ship from the `agent-workflows` plugin. Like the pipeline gates, they stop for a
+human and never auto-run — invoke them by hand.
+
+**TestLink content has its own pair**, owned here: `testlink-sync` writes it,
+`testlink-review` reads it back, `testlink-format` is the markup reference.
 
 **Right-size it.** A typo or a one-line tweak does not need a review pass — use
 judgment. Reach for these when a change is substantial enough that the look, the

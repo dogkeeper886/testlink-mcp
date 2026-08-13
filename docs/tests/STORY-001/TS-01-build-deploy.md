@@ -3,7 +3,6 @@ id: TS-01
 title: The server builds, starts, and containerises
 namespace: testlink-mcp
 story: STORY-001
-story_hash: c2d2636d891c39fa1d395585a71d510866bf82cc0983ccd13088a1caaaf8c4b7
 issue: 107
 status: green
 ---
