@@ -1,186 +1,131 @@
 # TestLink MCP Server
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/dogkeeper886/testlink-mcp)](https://hub.docker.com/r/dogkeeper886/testlink-mcp)
-[![Docker Image Size](https://img.shields.io/docker/image-size/dogkeeper886/testlink-mcp)](https://hub.docker.com/r/dogkeeper886/testlink-mcp)
+[![Docker pulls](https://img.shields.io/docker/pulls/dogkeeper886/testlink-mcp)](https://hub.docker.com/r/dogkeeper886/testlink-mcp)
+[![Docker image size](https://img.shields.io/docker/image-size/dogkeeper886/testlink-mcp)](https://hub.docker.com/r/dogkeeper886/testlink-mcp)
+[![Docker version](https://img.shields.io/docker/v/dogkeeper886/testlink-mcp?sort=semver)](https://hub.docker.com/r/dogkeeper886/testlink-mcp/tags)
 
-A Model Context Protocol (MCP) server for TestLink test case management, designed to work with Claude Code and Cursor IDE for AI-powered test case enhancement.
+Run your TestLink test management from an AI assistant, in plain English. Create suites,
+write and refine test cases, build test plans, record executions, and link requirements
+by chatting with any [Model Context Protocol](https://modelcontextprotocol.io) client.
 
-## 🚀 Quick Start
+![Architecture: MCP clients drive TestLink through the server](https://raw.githubusercontent.com/dogkeeper886/testlink-mcp/main/docs/diagrams/architecture.png)
 
-### For Claude Code
+TestLink is capable but slow to drive by hand, since every case edit, plan, and execution
+is a trip through the web UI. This image puts an MCP server in front of TestLink's XML-RPC
+API so your assistant does that work instead. It speaks MCP over stdio and TestLink over
+XML-RPC; you only see the conversation.
+
+## Quick start
+
+```bash
+docker pull dogkeeper886/testlink-mcp:latest
+```
+
+The container reads its configuration from two environment variables and talks over stdio,
+so it is launched by your MCP client rather than run as a background service.
+
+**Claude Code**
+
 ```bash
 claude mcp add testlink -- docker run --rm -i \
-  -e TESTLINK_URL=http://your-testlink-server.com \
+  -e TESTLINK_URL=http://your-testlink-host/testlink \
   -e TESTLINK_API_KEY=your_api_key_here \
   dogkeeper886/testlink-mcp:latest
 ```
 
-### For Cursor IDE
-Add to your Cursor MCP settings:
+**Cursor and other MCP clients** — add to your MCP config:
+
 ```json
 {
   "mcpServers": {
     "testlink": {
       "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "TESTLINK_URL=http://your-testlink-server.com",
+      "args": ["run", "--rm", "-i",
+        "-e", "TESTLINK_URL=http://your-testlink-host/testlink",
         "-e", "TESTLINK_API_KEY=your_api_key_here",
-        "dogkeeper886/testlink-mcp:latest"
-      ]
+        "dogkeeper886/testlink-mcp:latest"]
     }
   }
 }
 ```
 
-## 📋 Features
+Then ask your assistant: *"List the test suites in project 1."*
 
-- **30 MCP Tools** for comprehensive TestLink management
-- **Test Case Management**: Create, read, update, delete test cases
-- **Test Suite Operations**: Manage test suites and organize test cases
-- **Test Plan Management**: Create test plans, assign test cases, manage builds
-- **Test Execution**: Record and track test execution results
-- **Requirement Management**: Read requirements and link to test cases
-- **16 Agent-Friendly Commands**: Comprehensive guidance for AI agents
-- **Docker Optimized**: Multi-stage build for minimal image size
-- **XML-RPC Native**: Direct TestLink API communication
+The server prints nothing at all, so silence is what a working start looks like. If the
+container exits immediately with status 1, `TESTLINK_API_KEY` is unset — that is the only
+thing it refuses to start without, and it says so with the exit code rather than a message.
 
-## 🛠️ Available Tools
+## Configuration
 
-### Test Case Management (4 tools)
-- `read_test_case` - Fetch complete test case data
-- `create_test_case` - Create new test case with validation
-- `update_test_case` - Update test case fields with full validation
-- `delete_test_case` - Remove test case permanently
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TESTLINK_URL` | in practice | Base URL of your TestLink instance, e.g. `http://192.168.1.100/testlink`. Left unset it falls back to `http://localhost/testlink`, which is almost never right: the server starts anyway and then every call fails. |
+| `TESTLINK_API_KEY` | yes | API key from *My Settings → API interface → Generate key*. Left unset the container exits with status 1 and prints nothing. |
 
-### Test Suite Management (5 tools)
-- `list_test_suites` - Get test suites for a project
-- `list_test_cases_in_suite` - Get all test cases in a suite
-- `create_test_suite` - Create a new test suite in a project
-- `update_test_suite` - Update test suite properties
-- `delete_test_suite` - Delete a test suite and its contents
+The XML-RPC API must be enabled on your TestLink installation for any of this to work.
 
-### Test Plan Management (5 tools)
-- `list_test_plans` - List all test plans for a project
-- `create_test_plan` - Create a new test plan
-- `delete_test_plan` - Delete a test plan
-- `get_test_cases_for_test_plan` - List all test cases in a test plan
-- `add_test_case_to_test_plan` - Add a test case to a test plan
+## Tools
 
-### Build Management (3 tools)
-- `list_builds` - List all builds for a test plan
-- `create_build` - Create a new build
-- `close_build` - Close a build (prevents new test executions)
+30 tools, across the whole TestLink object model.
 
-### Test Execution Management (2 tools)
-- `read_test_execution` - Get the last execution result for a test case in a plan
-- `create_test_execution` - Record test execution result
+| Area | Tools |
+|------|-------|
+| Test cases (4) | `create_test_case`, `read_test_case`, `update_test_case`, `delete_test_case` |
+| Test suites (5) | `create_test_suite`, `update_test_suite`, `delete_test_suite`, `list_test_suites`, `list_test_cases_in_suite` |
+| Test plans (5) | `create_test_plan`, `delete_test_plan`, `list_test_plans`, `add_test_case_to_test_plan`, `get_test_cases_for_test_plan` |
+| Builds (3) | `create_build`, `close_build`, `list_builds` |
+| Executions (2) | `create_test_execution`, `read_test_execution` |
+| Requirements (7) | `create_requirement_specification`, `delete_requirement_specification`, `list_requirement_specifications`, `create_requirement`, `get_requirement`, `list_requirements`, `assign_requirements` |
+| Projects (4) | `create_project`, `update_project`, `delete_project`, `list_projects` |
 
-### Requirement Management (7 tools)
-- `list_requirements` - Get all requirements for a project
-- `get_requirement` - Get detailed information about a specific requirement
-- `list_requirement_specifications` - List requirement specifications for a project
-- `create_requirement_specification` - Create a requirement specification
-- `create_requirement` - Create a requirement inside a specification
-- `delete_requirement_specification` - Delete a specification and its requirements
-- `assign_requirements` - Link requirements to a test case (coverage)
+Every tool works against a stock TestLink with XML-RPC enabled, with one exception.
+`update_project` calls `tl.updateTestProject`, which upstream TestLink does not ship; it
+exists in the [dogkeeper886/testlink-code](https://github.com/dogkeeper886/testlink-code)
+fork on `main`. Against a server without it, the tool names the missing method instead of
+returning a raw XML-RPC fault.
 
-### Project Management (4 tools)
-- `create_project` - Create a new test project
-- `update_project` - Change a test project's fields (partial: only what you send changes) — requires `tl.updateTestProject`, see below
-- `delete_project` - Delete a test project and everything beneath it (requires prefix confirmation)
-- `list_projects` - Get all test projects
+## Image tags
 
-### TestLink server requirements
+| Tag | What it points at |
+|-----|-------------------|
+| `latest` | The newest release |
+| `1.6.0` | An exact version, pinned |
+| `1.6` | The latest patch on that minor line |
 
-All of the above work against a stock TestLink with the XML-RPC API enabled, except
-`update_project`, which calls `tl.updateTestProject` — a method upstream TestLink does not
-ship. It is available in the [dogkeeper886/testlink-code](https://github.com/dogkeeper886/testlink-code)
-fork on the `main` branch.
+Published tags follow unprefixed semver. The `v1.1` and `v1.2` tags predate that scheme
+and are not updated.
 
-## 🔧 Environment Variables
+## What is in the image
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `TESTLINK_URL` | Your TestLink instance URL | `http://192.168.1.100:8090` |
-| `TESTLINK_API_KEY` | Your TestLink API key | `your_api_key_here` |
+`linux/amd64` only. There is no ARM build, so on Apple Silicon it runs under emulation.
 
-## 📖 Usage Examples
+Around 53 MB compressed, built from `node:20-alpine` in a multi-stage Dockerfile and
+running as a non-root user with production dependencies only.
 
-```bash
-# Read a test case
-"Read test case PROJ-1 and improve the test steps"
+## Troubleshooting
 
-# Create a new test case
-"Create a new test case for login functionality"
+**Cannot connect to TestLink.** Check that `TESTLINK_URL` is reachable *from inside the
+container*, which is not the same as from your desktop. A TestLink running on your own
+machine is not at `localhost` from the container's point of view: use
+`host.docker.internal` on Docker Desktop, or the host's LAN address on Linux.
 
-# Manage test plans
-"Create a test plan for the new release"
-"Add test case PROJ-1 to test plan 10"
+**Invalid API key.** Regenerate the key in TestLink and confirm API access is enabled for
+your user.
 
-# Track executions
-"Record test execution result for test case 1 in plan 10"
+**Edits land on the wrong test case.** Pass either the external ID (`PREFIX-123`) or the
+numeric internal ID. The server routes each correctly, but they are different numbers for
+the same case.
 
-# Work with requirements
-"List all requirements for project 1"
-```
+## Source and support
 
-## 🏗️ Build Information
+Everything else lives in the GitHub repository: the full README, instructions for running
+from source, and three reusable Claude skills — `testlink-sync` to turn a spec or a folder
+of markdown into TestLink content, `testlink-review` to read it back and check it, and
+`testlink-format` for TestLink's rich-text markup.
 
-- **Base Image**: Node.js 20 Alpine
-- **Architecture**: linux/amd64
-- **Size**: ~50MB compressed
-- **Multi-stage Build**: Optimized for minimal size
-- **Security**: Non-root user, minimal attack surface
+- Repository: https://github.com/dogkeeper886/testlink-mcp
+- Issues: https://github.com/dogkeeper886/testlink-mcp/issues
+- TestLink fork used for development: https://github.com/dogkeeper886/testlink-code
 
-## 📦 Image Tags
-
-| Tag | Description |
-|-----|-------------|
-| `latest` | Latest stable release |
-| `v1.2` | Version 1.2 release |
-| `v1.1` | Version 1.1 release |
-
-## 🔍 Prerequisites
-
-- TestLink instance with XML-RPC API enabled
-- TestLink API key (generate from user profile)
-- Docker or compatible container runtime
-- Claude Code or Cursor IDE
-
-## 🚨 Troubleshooting
-
-### Connection Issues
-- Verify TestLink URL is accessible from container
-- Check API key is valid and has permissions
-- Ensure TestLink XML-RPC API is enabled
-
-### Common Errors
-- `Invalid API key`: Check your TestLink API key
-- `Connection refused`: Verify TestLink URL and port
-- `Missing arguments`: Check required parameters
-
-## 📚 Documentation
-
-- **Full Documentation**: [GitHub Repository](https://github.com/your-username/testlink-mcp)
-- **Command Files**: 16 agent-friendly command files included
-- **API Reference**: Complete TestLink XML-RPC integration
-- **Examples**: Comprehensive usage examples and tutorials
-
-## 🤝 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/testlink-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/testlink-mcp/discussions)
-- **Documentation**: [Full README](https://github.com/your-username/testlink-mcp/blob/main/README.md)
-
-## 📄 License
-
-MIT License - see [LICENSE](https://github.com/your-username/testlink-mcp/blob/main/LICENSE) file for details.
-
-## 🏷️ Tags
-
-`testlink` `mcp` `test-management` `claude` `cursor` `ai` `testing` `automation` `xmlrpc` `docker`
-
----
-
-**Ready to enhance your TestLink workflow with AI? Pull the image and start testing!** 🚀
+No license has been published for this project yet. Open an issue if you need licensing
+clarified before use.
