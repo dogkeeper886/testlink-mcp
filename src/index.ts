@@ -680,7 +680,7 @@ const server = new Server(
     // Keep in step with package.json — `npm version` does not touch this, so a
     // release that bumps only package.json makes the server announce a stale
     // version in its MCP handshake.
-    version: '1.5.0',
+    version: '1.6.0',
   },
   {
     capabilities: {
