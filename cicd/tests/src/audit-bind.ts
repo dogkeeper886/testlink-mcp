@@ -8,7 +8,7 @@
  *     signal — if the executable gains/loses steps without the doc following,
  *     the pair has diverged).
  * A case that fails is `unbound`. Exits non-zero if any case is unbound, so CI
- * (and the drift gate, #27) can gate on it.
+ * can gate on it.
  *
  * Run: npm run audit-bind
  */
@@ -35,7 +35,7 @@ export interface BindFinding {
  * This is a structural signal: equal counts mean "same number of steps", not
  * "same steps" — a count-preserving edit (swap/reorder) stays `bound`. That is
  * the floor for an audit-not-codegen design; semantic agreement is the
- * reviewer's job in /qw-review-bind.
+ * reviewer's job in /qa-review-bind.
  */
 function yamlStepCount(path: string): number {
   let inSteps = false;

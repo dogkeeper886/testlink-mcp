@@ -5,7 +5,7 @@
  * executable that already exists, so the in-repo apparatus gets its canonical
  * half without re-authoring it. The output is a scaffold: it carries the steps
  * and the `Script:` binding; the objective, expected results, and story link
- * are TODOs for a human/agent to fill, then `qw-review-bind` audits the result.
+ * are TODOs for a human/agent to fill, then `/qa-review-bind` audits the result.
  *
  * Run: npm run port-yaml -- cicd/tests/testcases/build/TC-BUILD-001.yml > docs/tests/TS-NN-slug.md
  */
@@ -49,7 +49,6 @@ namespace: TODO
 story: STORY-NNN
 issue: TODO
 status: unbound
-story_hash: TODO
 ---
 
 ## Why this scenario exists

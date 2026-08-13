@@ -17,7 +17,6 @@
     "list": "tsx src/cli.ts list",
     "dev": "tsx src/cli.ts",
     "audit-bind": "tsx src/audit-bind.ts",
-    "drift": "tsx src/drift.ts",
     "port-yaml": "tsx src/port-yaml.ts"
   },
   "dependencies": {

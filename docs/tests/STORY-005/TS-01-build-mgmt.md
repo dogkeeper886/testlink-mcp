@@ -3,7 +3,6 @@ id: TS-01
 title: A build is created under the plan and is listable
 namespace: testlink-mcp
 story: STORY-005
-story_hash: 18acd2219abca24430f11826b00d9f8cbb85fa92c140b926f07bd8b07eff3a8d
 issue: 107
 status: green
 ---

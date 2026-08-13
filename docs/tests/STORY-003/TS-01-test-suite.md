@@ -3,7 +3,6 @@ id: TS-01
 title: Suites list, update, and nest correctly
 namespace: testlink-mcp
 story: STORY-003
-story_hash: 42a2fa11f9b9b56b1bd1dfa1bc96b1db6749b7732bbdfd6e375c5b3a247770d7
 issue: 107
 status: green
 ---
