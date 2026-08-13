@@ -92,6 +92,23 @@ function validateNonEmptyString(value: string, fieldName: string): void {
   }
 }
 
+// Every named entity in TestLink — project, suite, case, plan, build,
+// requirement and its specification — stores its name in nodes_hierarchy.name,
+// which is varchar(100). TestLink does not check the length: it emits a PHP
+// error page, which reaches the client as `Unknown XML-RPC tag 'PRE'` and says
+// nothing about names or length (#111). Guard it here, where the field still
+// has a name the caller recognizes.
+const MAX_NODE_NAME_LENGTH = 100;
+
+function validateNodeName(value: string, fieldName: string): void {
+  validateNonEmptyString(value, fieldName);
+  if (value.length > MAX_NODE_NAME_LENGTH) {
+    throw new Error(
+      `${fieldName} must be ${MAX_NODE_NAME_LENGTH} characters or fewer (got ${value.length}). TestLink stores it in a varchar(100) column and rejects longer values without a usable message.`
+    );
+  }
+}
+
 class TestLinkAPI {
   private client: TestLink;
 
@@ -154,7 +171,10 @@ class TestLinkAPI {
       ...testCaseIdParam(testCaseId)
     };
 
-    if (data.name) updateParams.testcasename = data.name;
+    if (data.name) {
+      validateNodeName(data.name, 'Test case name');
+      updateParams.testcasename = data.name;
+    }
     if (data.summary) updateParams.summary = data.summary;
     if (data.preconditions) updateParams.preconditions = data.preconditions;
     if (data.steps) updateParams.steps = data.steps;
@@ -178,7 +198,7 @@ class TestLinkAPI {
     }
     validateProjectId(data.testprojectid);
     validateSuiteId(data.testsuiteid);
-    validateNonEmptyString(data.name, 'Test case name');
+    validateNodeName(data.name, 'Test case name');
     validateNonEmptyString(data.authorlogin, 'Author login');
 
     const createParams = {
@@ -213,7 +233,7 @@ class TestLinkAPI {
     if (!data || typeof data !== 'object') {
       throw new Error('Test project data must be an object');
     }
-    validateNonEmptyString(data.name, 'Test project name');
+    validateNodeName(data.name, 'Test project name');
     validateNonEmptyString(data.prefix, 'Test case prefix');
 
     const createParams = {
@@ -293,7 +313,7 @@ class TestLinkAPI {
     // Only the name is guarded: notes and colour are legitimately clearable, but
     // an empty name would leave the project with no way to identify it in the UI.
     if (data.name !== undefined) {
-      validateNonEmptyString(data.name, 'Test project name');
+      validateNodeName(data.name, 'Test project name');
       updateParams.testprojectname = data.name;
     }
     if (data.notes !== undefined) updateParams.notes = data.notes;
@@ -352,9 +372,26 @@ class TestLinkAPI {
 
     // Top-level mode: the library already returns a TestSuite[].
     if (!parentSuiteId) {
-      return this.handleAPICall(() => this.client.getFirstLevelTestSuitesForTestProject({
-        testprojectid: projectId
-      }));
+      return this.handleAPICall(async () => {
+        try {
+          return await this.client.getFirstLevelTestSuitesForTestProject({
+            testprojectid: projectId
+          });
+        } catch (error: any) {
+          // TestLink answers "this project has no suites" with fault 7008. For a
+          // listing, "there are none" is the answer, not a failure (#111) — so
+          // return the empty list the caller expected.
+          //
+          // The client library rejects faults as a plain Error with no code
+          // property, prefixing the message with the numeric code. Matching that
+          // prefix keys on the code; the prose after it is TestLink's and may be
+          // reworded or localized.
+          if (/^\[7008\]/.test(error?.message ?? '')) {
+            return [];
+          }
+          throw error;
+        }
+      });
     }
 
     // Child mode: getTestSuitesForTestSuite returns a keyed object
@@ -396,7 +433,7 @@ class TestLinkAPI {
 
   async createTestSuite(projectId: string, suiteName: string, details: string = '', parentId?: string) {
     validateProjectId(projectId);
-    validateNonEmptyString(suiteName, 'Suite name');
+    validateNodeName(suiteName, 'Suite name');
     if (parentId) {
       validateSuiteId(parentId);
     }
@@ -426,7 +463,10 @@ class TestLinkAPI {
       testprojectid: parseInt(projectId)
     };
 
-    if (data.name) updateParams.testsuitename = data.name;
+    if (data.name) {
+      validateNodeName(data.name, 'Suite name');
+      updateParams.testsuitename = data.name;
+    }
     if (data.details) updateParams.details = data.details;
 
     return this.handleAPICall(() => this.client.updateTestSuite(updateParams));
@@ -449,7 +489,7 @@ class TestLinkAPI {
       throw new Error('Missing required fields: project_id, name');
     }
     validateNonEmptyString(data.project_id, 'Project ID/prefix');
-    validateNonEmptyString(data.name, 'Test plan name');
+    validateNodeName(data.name, 'Test plan name');
 
     const createParams = {
       testprojectname: data.project_id, // Use project prefix instead of numeric ID
@@ -518,7 +558,7 @@ class TestLinkAPI {
       throw new Error('Missing required fields: plan_id, name');
     }
     validateSuiteId(data.plan_id); // Using suite validation for plan ID
-    validateNonEmptyString(data.name, 'Build name');
+    validateNodeName(data.name, 'Build name');
 
     const createParams = {
       testplanid: parseInt(data.plan_id),
@@ -621,6 +661,7 @@ class TestLinkAPI {
       throw new Error('Missing required fields: project_id, doc_id, title');
     }
     validateProjectId(data.project_id);
+    validateNodeName(data.title, 'Requirement specification title');
     return this.handleAPICall(() => (this.client as any)._performRequest('createRequirementSpecification', {
       testprojectid: parseInt(data.project_id),
       requirementdocid: data.doc_id,
@@ -638,6 +679,7 @@ class TestLinkAPI {
     }
     validateProjectId(data.project_id);
     validateSuiteId(data.reqspec_id);
+    validateNodeName(data.title, 'Requirement title');
     return this.handleAPICall(() => (this.client as any)._performRequest('createRequirement', {
       testprojectid: parseInt(data.project_id),
       reqspecid: parseInt(data.reqspec_id),

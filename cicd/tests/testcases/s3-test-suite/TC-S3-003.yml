@@ -15,6 +15,18 @@ steps:
     expectPatterns:
       - "UPDATE_SUITE_OK"
 
+  - name: "Refuse an over-length rename with a message that names the limit"
+    command: |
+      PID=$(cat /tmp/tl-flow/project_id); SID=$(cat /tmp/tl-flow/suite_id)
+      LONG=$(printf 'A%.0s' $(seq 1 101))
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts update_test_suite "{\"suite_id\":\"$SID\",\"project_id\":\"$PID\",\"data\":{\"name\":\"$LONG\"}}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); t=r['content'][0]['text']; assert r.get('isError'),'over-length name was accepted'; assert '100 characters or fewer' in t,'message does not name the limit: %s' % t[:120]; assert 'PRE' not in t,'raw XML-RPC parse error surfaced: %s' % t[:120]; print('LONG_NAME_REFUSED_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "LONG_NAME_REFUSED_OK"
+
 criteria: |
-  update_test_suite updates the flow suite without error.
+  update_test_suite updates the flow suite without error, and refuses a name
+  longer than the 100 characters TestLink can store with a message that names
+  the field and the limit rather than a raw XML-RPC parse failure.
 goal: "Update a test suite via the MCP update_test_suite tool"
