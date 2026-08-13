@@ -1,0 +1,37 @@
+id: TC-S8-006
+name: "Scratch: delete by PREFIX, leaving nothing behind"
+suite: s8-project-lifecycle
+priority: 6
+timeout: 60000
+dependencies: [TC-S8-005]
+
+# The other identity form, and the stage's teardown in one: TC-S8-005 already
+# destroyed the project, so this re-creates it, deletes it by prefix, and leaves
+# the backend with only the shared flow fixture — which this stage never touches.
+
+steps:
+  - name: "Re-create the throwaway project"
+    command: |
+      CP=$(npx tsx cicd/tests/src/mcp-client.ts create_project "{\"name\":\"MCP Scratch Project\",\"prefix\":\"MSCR\",\"notes\":\"throwaway fixture for the destructive stage\"}" 2>/dev/null)
+      SID=$(echo "$CP" | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); p=d[0] if isinstance(d,list) else d; print(p['id'])")
+      echo "$SID" > /tmp/tl-flow/scratch_project_id
+      echo "SCRATCH_RECREATE_OK id=$SID"
+    timeout: 30000
+    expectPatterns:
+      - "SCRATCH_RECREATE_OK id=[0-9]+"
+
+  - name: "Delete it by prefix, then prove it is gone"
+    command: |
+      RESULT=$(npx tsx cicd/tests/src/mcp-client.ts delete_project "{\"project_id\":\"MSCR\",\"confirm_prefix\":\"MSCR\"}" 2>/dev/null)
+      echo "$RESULT" | python3 -c "import sys,json; r=json.load(sys.stdin); assert not r.get('isError'),'delete by prefix errored: '+r['content'][0]['text'][:120]; d=json.loads(r['content'][0]['text']); o=d[0] if isinstance(d,list) else d; assert o.get('status') in (True,'true',1),'no success status'; print('DELETE_BY_PREFIX_OK')"
+      npx tsx cicd/tests/src/mcp-client.ts list_projects "{}" 2>/dev/null | python3 -c "import sys,json; d=json.loads(json.load(sys.stdin)['content'][0]['text']); d=d if isinstance(d,list) else []; assert not any(p.get('prefix')=='MSCR' for p in d),'throwaway project leaked'; print('SCRATCH_TEARDOWN_OK')"
+    timeout: 20000
+    expectPatterns:
+      - "DELETE_BY_PREFIX_OK"
+      - "SCRATCH_TEARDOWN_OK"
+
+criteria: |
+  delete_project accepts a test case prefix as the identity, and the stage
+  removes the throwaway project it created — leaving the shared flow fixture
+  untouched.
+goal: "Delete the throwaway project by prefix and leave the backend clean"

@@ -5,10 +5,11 @@ priority: 1
 timeout: 60000
 dependencies: [TC-S1-001]
 
-# The destructive stage. It works on its OWN throwaway project, never the shared
-# flow fixture — a delete test that destroys the project every later stage depends
-# on cannot assert anything. Created here, destroyed by TC-S8-004, so the stage
-# leaves the backend as it found it and needs no entry in the s7 teardown.
+# The whole-project stage. It works on its OWN throwaway project, never the shared
+# flow fixture — a test that renames, deactivates or destroys the project every
+# later stage depends on cannot assert anything. Created here, destroyed by
+# TC-S8-006, so the stage leaves the backend as it found it and needs no entry in
+# the s7 teardown.
 #
 # Idempotent by prefix like every other fixture: a failed earlier run leaves the
 # project behind, and this reuses it rather than colliding on the unique prefix.

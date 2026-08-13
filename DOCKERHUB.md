@@ -35,7 +35,7 @@ Add to your Cursor MCP settings:
 
 ## 📋 Features
 
-- **29 MCP Tools** for comprehensive TestLink management
+- **30 MCP Tools** for comprehensive TestLink management
 - **Test Case Management**: Create, read, update, delete test cases
 - **Test Suite Operations**: Manage test suites and organize test cases
 - **Test Plan Management**: Create test plans, assign test cases, manage builds
@@ -85,10 +85,18 @@ Add to your Cursor MCP settings:
 - `delete_requirement_specification` - Delete a specification and its requirements
 - `assign_requirements` - Link requirements to a test case (coverage)
 
-### Project Management (3 tools)
+### Project Management (4 tools)
 - `create_project` - Create a new test project
+- `update_project` - Change a test project's fields (partial: only what you send changes) — requires `tl.updateTestProject`, see below
 - `delete_project` - Delete a test project and everything beneath it (requires prefix confirmation)
 - `list_projects` - Get all test projects
+
+### TestLink server requirements
+
+All of the above work against a stock TestLink with the XML-RPC API enabled, except
+`update_project`, which calls `tl.updateTestProject` — a method upstream TestLink does not
+ship. It is available in the [dogkeeper886/testlink-code](https://github.com/dogkeeper886/testlink-code)
+fork on the `main` branch.
 
 ## 🔧 Environment Variables
 
